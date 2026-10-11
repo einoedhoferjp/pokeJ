@@ -128,5 +128,17 @@ struct LibraryView: View {
 
 #Preview {
     LibraryView()
-        .modelContainer(for: Card.self, CardVariant.self, CollectionItem.self, inMemory: true)
+        .modelContainer(PreviewData.container)
+}
+
+enum PreviewData {
+    static let container: ModelContainer = {
+        let schema = Schema([Card.self, CardVariant.self, CollectionItem.self])
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        do {
+            return try ModelContainer(for: schema, configurations: [configuration])
+        } catch {
+            fatalError("Preview-ModelContainer konnte nicht erstellt werden: \(error)")
+        }
+    }()
 }
