@@ -61,11 +61,18 @@ struct LibraryView: View {
                         Button(role: .destructive) {
                             auth.logout()
                         } label: {
-                            Label("Abmelden", systemImage: "rectangle.portrait.and.arrow.right")
-                        }
-                    } label: {
-                        Label("Konto", systemImage: "person.crop.circle")
+                        Label("Abmelden", systemImage: "rectangle.portrait.and.arrow.right")
                     }
+                    Section("Daten") {
+                        NavigationLink {
+                            DataExportView()
+                        } label: {
+                            Label("Export / Backup", systemImage: "square.and.arrow.up.on.square")
+                        }
+                    }
+                } label: {
+                    Label("Konto", systemImage: "person.crop.circle")
+                }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button {

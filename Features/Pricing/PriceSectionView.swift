@@ -18,6 +18,10 @@ struct PriceSectionView: View {
                 available
             }
         }
+        if !points.isEmpty, let pid = points.first?.productId {
+            PriceHistoryChartView(productId: pid)
+                .frame(maxWidth: .infinity)
+        }
     }
 
     private var unavailable: some View {

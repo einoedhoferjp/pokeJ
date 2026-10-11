@@ -31,8 +31,9 @@ ausführbare Tests werden ausdrücklich als **nicht ausgeführt** gekennzeichnet
   (Hash-Vektor + Probe-Accounts + `AuthStore` mit eigener `UserDefaults`-Suite),
   `CollectionRepositoryTests` (u. a. `existingItem`/Varianten-Wiederverwendung).
 - **Phase 4:** Bildqualitätsprüfung, Zentrierung, Zustandsschätzung +
-  Unsicherheit, manuelle Korrektur.
-- **Phase 5:** Synchronisierung (Konfliktfälle, kein Datenverlust).
+  Unsicherheit, manuelle Korrektur. In CI abgedeckt: `ConditionHeuristicsTests`,
+  `ConditionAssessorTests` (synthetische Testbilder).
+- **Phase 5:** Synchronisierung (Konfliktfälle, kein Datenverlust), Export/Backup.
 
 ## 3. Testkarten-Set (anzulegen)
 

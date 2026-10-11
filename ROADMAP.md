@@ -122,27 +122,26 @@ Nachfreigabe des Nutzers; baut auf Phase 1–3 auf.
 
 ---
 
-## Phase 4 — Zustandsbewertung ⬜
+## Phase 4 — Zustandsbewertung ✅
 
-- ⬜ Aufnahme Vorder-/Rückseite.
-- ⬜ Bildqualitätsprüfung (Schärfe, Beleuchtung, Perspektive).
-- ⬜ Zentrierungsanalyse (Randbreiten).
-- ⬜ Erste Merkmalsanalyse (Kanten/Ecken Whiteing soweit technisch sinnvoll).
-- ⬜ Manuell korrigierbare Zustandsvorschau + Konfidenz.
-- ⬜ Tests mit bekannten Beispielen.
-- ⬜ Konzept Datensammlung für späteres Core-ML-Modell.
+- ✅ Aufnahme Vorder-/Rückseite (PhotosPicker)
+- ✅ Bildqualitätsprüfung (Schärfe, Beleuchtung, Reflexion) – Heuristik
+- ✅ Zentrierungsanalyse (Randbreite/-gleichmäßigkeit)
+- ✅ Merkmalsanalyse (Ecken/Kanten/Weißung) – konservativ
+- ✅ Manuell korrigierbare Zustandsvorschau + Konfidenz
+- ✅ Tests mit synthetischen Bildern (CI)
+- ✅ Konzept Datensammlung für späteres Core-ML-Modell (Markierung „keine ML-Schätzung")
 
----
+## Phase 5 — Erweiterungen 🚧
 
-## Phase 5 — Erweiterungen ⬜
-
-- ⬜ Supabase-Synchronisierung (optional).
-- ⬜ Preisverlauf-Diagramme.
-- ⬜ Verbesserte Bilderkennung / eigenes Core-ML-Modell.
-- ⬜ Stapelscan.
-- ⬜ Export / Backup.
-- ⬜ Weitere Sprachen der App.
-- ⬜ App-Store-Vorbereitung.
+- ✅ Preisverlauf-Diagramme (Chart, gespeicherte Preisstände)
+- ✅ Export / Backup (JSON + CSV) aus Bibliothek
+- ⬜ Import (Backup wiederherstellen) – gezielt und sicher
+- ⬜ Stapelscan (mehrere Karten nacheinander, mit Pause)
+- ⬜ Verbesserte Bilderkennung / eigenes Core-ML-Modell
+- ⬜ Supabase-Synchronisierung (optional, erst bei Bedarf)
+- ⬜ Weitere Sprachen der App
+- ⬜ App-Store-Vorbereitung
 
 ---
 

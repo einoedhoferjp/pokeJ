@@ -25,6 +25,8 @@ hinzufügen, den Zustand einschätzen und Cardmarket-Preise anzeigen.
 7. Sammlungswert berechnen und (später) Wertentwicklung speichern.
 8. Lokale Anmeldung (Demo-Accounts) als Einstieg.
 9. Gesamten Katalog (alle Sets/Karten) offline durchsuchen und live bepreisen.
+10. Automatische Zustandsschätzung mit manueller Korrektur.
+11. Preisverlauf und Export/Backup der Sammlung.
 
 ## Technischer Stack (geplant)
 

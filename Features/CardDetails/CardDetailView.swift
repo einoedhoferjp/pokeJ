@@ -25,6 +25,9 @@ struct CardDetailView: View {
             ToolbarItem(placement: .primaryAction) {
                 Button("Bearbeiten") { showingEdit = true }
             }
+            ToolbarItem(placement: .secondaryAction) {
+                NavigationLink("Zustand") { ConditionPreviewView(item: item) }
+            }
         }
         .sheet(isPresented: $showingEdit) {
             AddEditCardView(mode: .edit(item))
