@@ -18,7 +18,8 @@ Legende: ✅ erledigt · 🚧 in Arbeit · ⬜ offen
 - ✅ Roadmap (dieses Dokument), Kosten, Zugangsdaten (`SETUP.md`).
 - ✅ Risikoanalyse (`ARCHITECTURE.md` §8).
 
-**Offen vor Phase 1:** Build-Weg festlegen (Cloud-Mac oder GitHub-Actions-CI).
+**Entschieden:** Build-Weg = GitHub-Actions-CI (kostenlos) + Sideloading aufs
+iPad; Deployment-Target = iOS 17+; Datenquelle = TCGdex.
 
 ---
 

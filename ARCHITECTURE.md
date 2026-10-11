@@ -177,7 +177,7 @@ Mehrstufig, nie nur über den Namen:
 
 | # | Risiko | Auswirkung | Gegenmaßnahme |
 |---|---|---|---|
-| 1 | Kein Mac vorhanden | Build/Test blockiert | Cloud-Mac oder GitHub-Actions-CI (SETUP.md) |
+| 1 | Kein Mac vorhanden | Build/Test blockiert | GitHub-Actions-CI (kostenlos) + Sideloading (SETUP.md) |
 | 2 | Cardmarket-API nicht zugänglich | keine Preise direkt | Preise über TCGdex; Quelle kennzeichnen |
 | 3 | TCGdex-Preis/Varianten-Fehler | falsche Preise | `matchQuality`, Warnhinweise, `variants_detailed` beobachten |
 | 4 | Preise ohne Sprache/Zustand | Ungenauigkeit | UI kennzeichnet produktbezogenen Preis |
@@ -185,12 +185,20 @@ Mehrstufig, nie nur über den Namen:
 | 6 | OCR bei alten/JP-Karten | Fehltreffer | manuelle Bestätigung, Kandidatenliste |
 | 7 | Keine gelabelten Zustandsdaten | keine ML-Bewertung | erst Basis-CV, dann Datensammlung |
 | 8 | Einzelquelle TCGdex | Ausfall/Fehler | austauschbare Provider-Schicht |
-| 9 | git nicht installiert | keine Versionierung | git nachinstallieren |
+| 9 | Kein Developer-Programm/Budget | kein TestFlight/App Store | kostenloses Sideloading (7-Tage-Profil) |
+| 10 | Sideload-Profil läuft wöchentlich ab | Testkomfort | wöchentliches Neusignieren einplanen |
 
-## 9. Offene Entscheidungen
+## 9. Entscheidungen
 
-1. **Build-Weg** (Cloud-Mac vs. GitHub-Actions-CI) — blockierend für Phase 1.
-2. Deployment-Target endgültig auf **iOS 17+** festlegen (SwiftData).
-3. Bundle-ID / Team-ID / Signing-Strategie.
-4. Umfang Phase 1 (Umfang des Seed-Datensatzes).
-5. Supabase erst Phase 5 bestätigen.
+**Getroffen (Phase 0):**
+1. ✅ **Build-Weg:** GitHub-Actions-macOS-CI (kostenlos) + Sideloading aufs iPad.
+2. ✅ **Deployment-Target:** iOS 17+ (SwiftData).
+3. ✅ Datenquelle: TCGdex (kein Cardmarket-API-Zugang).
+4. ✅ Preise über `pricing.cardmarket` aus TCGdex.
+5. ✅ Modell: ein `CollectionItem` je physischem Exemplar.
+
+**Offen (vor/nach Phase 1):**
+1. Bundle-ID (Vorschlag `local.pokej.app`).
+2. Repository öffentlich (kostenlos/unbegrenzt) oder privat (begrenztes Budget)?
+3. Umfang des Phase-1-Seed-Datensatzes.
+4. Supabase erst Phase 5 bestätigen.
