@@ -56,9 +56,18 @@ enum CardCondition: String, Codable, CaseIterable, Identifiable, Sendable {
 
 /// Kennzahl eines Preisdatensatzes (Cardmarket über TCGdex).
 enum PriceMetric: String, Codable, CaseIterable, Identifiable, Sendable {
-    case avg, low, trend, avg1, avg7, avg30, avgHolo
+    case avg, low, trend, avg1, avg7, avg30
+    case avgHolo, lowHolo, trendHolo, avg1Holo, avg7Holo, avg30Holo
 
     var id: String { rawValue }
+
+    /// `true`, wenn die Kennzahl den Foil-/Holo-Preis beschreibt.
+    var isHolo: Bool {
+        switch self {
+        case .avg, .low, .trend, .avg1, .avg7, .avg30: return false
+        case .avgHolo, .lowHolo, .trendHolo, .avg1Holo, .avg7Holo, .avg30Holo: return true
+        }
+    }
 
     var displayName: String {
         switch self {
@@ -69,6 +78,11 @@ enum PriceMetric: String, Codable, CaseIterable, Identifiable, Sendable {
         case .avg7: return "Ø 7 Tage"
         case .avg30: return "Ø 30 Tage"
         case .avgHolo: return "Ø (Holo)"
+        case .lowHolo: return "Günstigstes (Holo)"
+        case .trendHolo: return "Trend (Holo)"
+        case .avg1Holo: return "Ø 1 Tag (Holo)"
+        case .avg7Holo: return "Ø 7 Tage (Holo)"
+        case .avg30Holo: return "Ø 30 Tage (Holo)"
         }
     }
 }

@@ -1,18 +1,6 @@
 import XCTest
 @testable import PokeJ
 
-private struct StubHTTPClient: HTTPClient {
-    let handler: @Sendable (URL) throws -> (Int, Data)
-
-    func data(from url: URL) async throws -> (Data, HTTPURLResponse) {
-        let (status, body) = try handler(url)
-        guard let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: nil) else {
-            throw CardDataError.network
-        }
-        return (body, response)
-    }
-}
-
 final class TCGdexProviderTests: XCTestCase {
     private static let searchJSON = """
     [

@@ -39,7 +39,8 @@ struct CardQuery: Sendable {
 }
 
 /// Von der Preisdatenquelle gelieferter Momentaufnahme-Datensatz.
-struct PriceSnapshotDTO: Sendable {
+struct PriceSnapshotDTO: Equatable, Sendable {
+    let productId: String?
     let metric: PriceMetric
     let amount: Decimal
     let currency: String

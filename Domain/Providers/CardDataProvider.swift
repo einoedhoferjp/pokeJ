@@ -8,8 +8,11 @@ protocol CardDataProvider: Sendable {
 }
 
 /// Datenquelle für Preise (Phase 3: TCGdex `pricing.cardmarket`).
+///
+/// Liefert alle verfügbaren Kennzahlen als Liste; fehlende Kennzahlen werden
+/// ausgelassen, es werden keine Werte erfunden.
 protocol PriceProvider: Sendable {
-    func price(externalCardId: String, printing: Printing, language: Language) async throws -> PriceSnapshotDTO?
+    func prices(externalCardId: String, printing: Printing, language: Language) async throws -> [PriceSnapshotDTO]
 }
 
 enum CardDataError: Error, LocalizedError {
