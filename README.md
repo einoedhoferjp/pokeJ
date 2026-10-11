@@ -65,6 +65,7 @@ Documentation/  (Doku liegt vorerst im Wurzelverzeichnis)
 
 ## Dokumentation
 
+- `GETTING_STARTED.md` — **Schritt-für-Schritt: Code auf GitHub + erster Build**
 - `ARCHITECTURE.md` — Architektur, Datenmodell, Entscheidungen, Risiken
 - `ROADMAP.md` — Phasen und Meilensteine
 - `DATA_SOURCES.md` — TCGdex, Cardmarket, Lizenzen, Rechte
