@@ -89,22 +89,27 @@ zwischendurch mehrfach pushen.
 
 ---
 
-## Schritt 5 (später) – App aufs iPad installieren
+## Schritt 5 – App aufs iPad installieren
 
-Das ist **noch nicht** eingerichtet: Der CI-Workflow baut und testet bisher
-nur, er erzeugt noch keine installierbare Datei. Für die Installation auf dem
-iPad sind zusätzlich nötig:
+Der Workflow **`.github/workflows/ipa.yml`** baut ein **unsigniertes `.ipa`**.
+So kommst du auf das Gerät:
 
-1. Ein Schritt im Workflow, der ein **unsigniertes `.ipa`/`.app`** archiviert
-   und als **Artifact** zum Download bereitstellt.
-2. **Sideloadly** auf Windows (kostenlos):
+1. Im Repository auf **Actions** → Workflow **„IPA"** → **Run workflow**
+   (Branch `main`) klicken. Der Lauf braucht ca. 10–15 Minuten.
+2. Nach dem Lauf beim Job-Ergebnis das Artefakt **`PokeJ-unsigned-ipa`**
+   herunterladen und entpacken → `PokeJ.ipa`.
+3. **Sideloadly** auf Windows installieren (kostenlos):
    ```powershell
    winget install --id Sideloadly.Sideloadly -e
    ```
-3. iPad per USB anschließen, Apple ID eintragen, das Artifact installieren.
-   Das Profil ist **7 Tage** gültig → wöchentlich neu laden.
+4. iPad per USB anschließen, Sideloadly starten, `PokeJ.ipa` auswählen, deine
+   **freie Apple ID** eintragen und **Start** drücken. Sideloadly signiert das
+   unsignierte `.ipa` dabei selbst.
+5. Auf dem iPad unter *Einstellungen → Allgemein → VPN & Geräteverwaltung* dem
+   Entwicklerprofil vertrauen.
+6. Das Profil ist **7 Tage** gültig → wöchentlich neu sideloaden.
 
-Diese Schritte ergänze ich, sobald der erste grüne CI-Build vorliegt.
+Für Kameratests das **echte iPad** verwenden (der Simulator hat keine Kamera).
 
 ---
 
@@ -116,3 +121,5 @@ Diese Schritte ergänze ich, sobald der erste grüne CI-Build vorliegt.
 - [ ] `git push -u origin main` erfolgreich
 - [ ] Actions-Lauf gestartet und Ergebnis abgewartet
 - [ ] Ergebnis an mich melden (grün = weiter, rot = Logausschnitt senden)
+- [ ] (Optional) Workflow **IPA** starten, Artefakt herunterladen, per Sideloadly
+      aufs iPad laden

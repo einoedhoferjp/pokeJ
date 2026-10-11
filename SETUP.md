@@ -68,10 +68,17 @@ winget install --id Sideloadly.Sideloadly -e
 # AltStore-Alternative: https://altstore.io (AltServer für Windows)
 ```
 
-## 5. CI-Workflow (Ziel, kostenlos)
+## 5. CI-Workflows
+
+- `.github/workflows/ci.yml`: baut und testet bei jedem Push auf `main`
+  (`xcodebuild test`, Simulator **iPhone 16**).
+- `.github/workflows/ipa.yml`: erzeugt ein **unsigniertes `.ipa`** als Artefakt.
+  Start entweder manuell (GitHub → **Actions → IPA → Run workflow**) oder
+  automatisch bei einem Tag `v*`. Das `.ipa` ist zum Sideloaden gedacht (siehe
+  Abschnitt 6).
 
 ```yaml
-# .github/workflows/ci.yml (Entwurf – wird in Phase 1 angelegt)
+# .github/workflows/ci.yml (gekürzt)
 name: CI
 on: [push, pull_request]
 jobs:
@@ -81,16 +88,29 @@ jobs:
       - uses: actions/checkout@v4
       - run: brew install xcodegen
       - run: xcodegen generate
-      - run: xcodebuild build -scheme PokeJ -destination 'generic/platform=iOS Simulator'
-      - run: xcodebuild test  -scheme PokeJ -destination 'platform=iOS Simulator,name=iPad (10th generation)'
+      - run: xcodebuild build -scheme PokeJ -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+      - run: xcodebuild test  -scheme PokeJ -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' CODE_SIGNING_ALLOWED=NO
 ```
 
-## 6. Geräteinstallation ohne Developer-Programm
+## 6. Geräteinstallation ohne Developer-Programm (Sideloadly)
 
-1. Lokal ein **unsigniertes** `.ipa`/`.app` aus dem CI erzeugen (Artifact).
-2. iPad per USB anschließen, in Sideloadly die Apple ID eintragen.
-3. App aufs iPad installieren; Profil ist 7 Tage gültig → wöchentlich neu laden.
-4. Kameratests laufen auf dem echten iPad (der Simulator hat keine Kamera).
+1. Auf GitHub den Workflow **IPA** starten (Actions → *IPA* → **Run workflow**)
+   oder einen Tag `v*` pushen.
+2. Nach dem Lauf das Artefakt **`PokeJ-unsigned-ipa`** herunterladen und
+   entpacken → `PokeJ.ipa`.
+3. **Sideloadly** starten (`sideloadly.io`, Windows-Build) und das iPad per USB
+   anschließen.
+4. In Sideloadly `PokeJ.ipa` auswählen und die **freie Apple-ID** eintragen
+   (Apple-ID + App-spezifisches Passwort). Sideloadly signiert das unsignierte
+   `.ipa` selbst.
+5. **Signieren/Installieren** starten. Auf dem iPad ggf. unter
+   *Einstellungen → Allgemein → VPN & Geräteverwaltung* dem Entwicklerprofil
+   vertrauen.
+6. Profil läuft **nach 7 Tagen ab** → wöchentlich neu sideloaden (gestrige
+   Artifacts können wiederverwendet werden).
+7. **Kameratests** laufen nur auf dem echten iPad (der Simulator hat keine
+   Kamera). Preise erfordern eine Internetverbindung (TCGdex).
+
 
 ## 7. Kostenübersicht
 
