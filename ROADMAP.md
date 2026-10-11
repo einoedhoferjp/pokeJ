@@ -23,7 +23,7 @@ iPad; Deployment-Target = iOS 17+; Datenquelle = TCGdex.
 
 ---
 
-## Phase 1 — Minimal funktionsfähige App 🚧
+## Phase 1 — Minimal funktionsfähige App ✅
 
 Ziel: eine offline nutzbare App, die die Sammlung bereits sinnvoll verwaltet.
 
@@ -36,31 +36,41 @@ Ziel: eine offline nutzbare App, die die Sammlung bereits sinnvoll verwaltet.
 - ✅ Karte manuell hinzufügen/bearbeiten/löschen (Sprache, Variante, Zustand).
 - ✅ Kartendetailansicht (ohne Preise, mit Platzhalter-Hinweis).
 - ✅ Basis-Unit-Tests (Datenmodell, Filter, Mock-Provider).
-- ⬜ Build über CI verifiziert (GitHub-Actions-Workflow angelegt, noch nicht
-  ausgeführt – kein macOS lokal, privates Repo muss zuerst existieren).
+- ✅ Build über CI verifiziert (GitHub-Actions-Workflow, grün: Build + Tests).
 - ⬜ Installation auf dem iPad per Sideloading (7-Tage-Profil).
 
 **Definition of Done:** App startet, Sammlung bleibt nach Neustart erhalten,
 manuelles Anlegen mehrerer Zustände derselben Karte funktioniert.
 
-> **Ehrlicher Status:** Der Swift-Code ist geschrieben, aber **noch nicht
-> kompiliert oder getestet** – das erfordert den CI-Lauf auf macOS. Es werden
-> keine Testergebnisse behauptet, die nicht vorliegen.
+> **Status:** Der CI-Lauf auf dem macOS-Runner ist **grün** (Build kompiliert,
+> alle Unit-Tests bestehen). Die manuelle Installation auf dem iPad steht noch
+> aus.
 
 ---
 
-## Phase 2 — Scanner ⬜
+## Phase 2 — Scanner 🚧
 
-- ⬜ AVFoundation-Kameraansicht (iPad).
-- ⬜ Kartenrechteck erkennen + perspektivisch entzerren.
-- ⬜ Vision-OCR (Name, Nummer, HP).
-- ⬜ Live-Anbindung `TCGdexProvider`.
-- ⬜ Kandidatenliste + Bewertung + Statusanzeige.
-- ⬜ Bestätigung und Speichern in die Sammlung.
-- ⬜ Tests mit realen Karten (siehe `TESTING.md`).
+- ✅ Kamera-Scan über `VNDocumentCameraViewController` (VisionKit) statt rohem
+  AVFoundation – übernimmt Aufnahme und Perspektivkorrektur.
+- ✅ Kartenrechteck erkennen + perspektivisch entzerren (Dokumentenscanner +
+  CoreImage `CIPerspectiveCorrection` in `CardImagePreprocessor`).
+- ✅ Vision-OCR (Name, Nummer, KP) – `TextRecognizing`/`VisionTextRecognizer`,
+  vollständig auf dem Gerät.
+- ✅ Live-Anbindung `TCGdexProvider` inkl. Suche, Karte, Sets, Set-Namen-Cache.
+- ✅ Kandidatenliste + Bewertung + Statusanzeige (`CardMatcher`,
+  `IdentifyCardUseCase`, `ScannerView`).
+- ✅ Bestätigung und Speichern in die Sammlung (vorausgefüllter
+  Hinzufügen-Dialog, `ScanRecord`-Protokollierung).
+- ✅ Unit-Tests mit Stub-HTTPClient und Stub-Recognizer (CI-grün).
+- ⬜ Tests mit realen Karten auf dem Gerät (siehe `TESTING.md`).
 
 **Definition of Done:** Einzelkarten-Scan liefert zuverlässig Kandidaten mit
 nachvollziehbarem Status; keine stille Fehlspeicherung.
+
+> **Status:** Die Implementierung ist committet und die Unit-Tests sind im CI
+> **grün**. Die Erkennungsqualität mit echten Karten und Kamerabildern ist noch
+> **nicht** verifiziert – das erfordert einen Test auf dem iPad.
+
 
 ---
 

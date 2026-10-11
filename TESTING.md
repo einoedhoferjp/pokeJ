@@ -17,6 +17,10 @@ ausführbare Tests werden ausdrücklich als **nicht ausgeführt** gekennzeichnet
 - **Phase 1:** Datenmodell, Persistenz, manuelles Anlegen, mehrere Zustände
   derselben Karte, Suche/Filter/Sortierung.
 - **Phase 2:** OCR-Felderkennung, Kandidatenranking, kein stilles Falschspeichern.
+  In CI abgedeckt (ohne Netzwerk/Gerät): `CardTextParserTests`,
+  `CardMatcherTests`, `IdentifyCardUseCaseTests`, `TCGdexProviderTests`
+  (Stub-HTTPClient), `ScanProcessorTests` (Stub-Recognizer),
+  `CardImagePreprocessorTests` (reine Koordinatenlogik).
 - **Phase 3:** Variante→Preis-Zuordnung, Kennzahlen, Sammlungswert, veraltete
   Daten, Offline-Verhalten.
 - **Phase 4:** Bildqualitätsprüfung, Zentrierung, Zustandsschätzung +
@@ -58,6 +62,10 @@ Kartennummer und (falls zutreffend) der erwartete Preis-Datensatz.
 - Tests laufen nicht auf Windows (kein Swift). Sie laufen im **CI-macOS-Runner**
   oder auf einem Cloud-Mac:
   ```bash
-  xcodebuild test -scheme PokeJ -destination 'platform=iOS Simulator,name=iPad (10th generation)'
+  xcodebuild test -scheme PokeJ -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' CODE_SIGNING_ALLOWED=NO
   ```
-- Bis ein Build-Weg steht: **keine Tests ausgeführt** (Phase 0).
+- Der CI-Lauf (`.github/workflows/ci.yml`) ist für Phase 1 und 2 **grün**:
+  Build kompiliert, alle Unit-Tests bestehen.
+- Kamera-, Vision- und Netzwerkpfade werden in CI **nicht** ausgeführt
+  (Simulator ohne Kamera, kein Live-Zugriff) – sie sind über Protokolle und
+  Stubs abgedeckt bzw. erfordern einen Test auf dem echten iPad.
