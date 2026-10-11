@@ -73,7 +73,7 @@ Dokumentationen entnommen (siehe Quellen unten). Nichts ist erfunden.
 | `avg1/7/30` | Durchschnitt 1/7/30 Tage |
 | `avg-holo` etc. | gleiche Kennzahlen für Foil |
 
-### Regeln für die Anzeige (verbindlich)
+### Regeln für die Anzeige (verbindlich) — in der App umgesetzt
 - Immer **Quelle** anzeigen: „Cardmarket-Preis, geliefert über TCGdex".
 - Immer die **verwendete Kennzahl** benennen (avg/low/trend/…).
 - Immer den **Zeitstempel** (`updated`) und die Währung anzeigen.
@@ -82,6 +82,13 @@ Dokumentationen entnommen (siehe Quellen unten). Nichts ist erfunden.
   darstellen.
 - Fehlt ein zuverlässiger Preis: **Hinweis anzeigen**, keinen Preis erfinden.
 - Unsichere Zuordnung → `matchQuality` markieren.
+
+> Umsetzung (`Features/Pricing`, `Data/Services/Pricing`): `TCGdexPriceProvider`
+> liest `pricing.cardmarket`; pro Druck werden die passenden Kennzahlen gemappt
+> (Foil → `*-holo`). `PriceSectionView` zeigt Quelle, Kennzahl, Zeitstempel,
+> Zuordnung und ein „veraltet"-Badge (`PriceFreshness`, 36 h). `matchQuality`
+> ist derzeit durchgängig `productOnly`, weil TCGdex den Preis produktweit
+> liefert.
 
 ---
 

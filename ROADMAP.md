@@ -74,17 +74,29 @@ nachvollziehbarem Status; keine stille Fehlspeicherung.
 
 ---
 
-## Phase 3 — Cardmarket-Preise ⬜
+## Phase 3 — Cardmarket-Preise ✅
 
-- ⬜ Zuordnung Variante → `pricing.cardmarket`.
-- ⬜ `PriceSnapshot`-Speicherung + Aktualisierung.
-- ⬜ Anzeige in Karten-/Detail-/Bibliotheksansicht mit Kennzahl + Zeitstempel.
-- ⬜ Sammlungswert + Kennzeichnung fehlender/veralteter Preise.
-- ⬜ Offline: letzter Stand mit „veraltet"-Hinweis.
-- ⬜ Verlaufsdaten (PriceSnapshot-Historie).
+- ✅ Zuordnung Variante → `pricing.cardmarket` (`TCGdexPriceProvider`,
+  Foil/Non-Foil-Mapping über die Holo-Kennzahlen).
+- ✅ `PriceSnapshot`-Speicherung + Aktualisierung (`PriceRepository` mit
+  „save-if-changed", `PriceService`, „Preise aktualisieren" in der Bibliothek).
+- ✅ Anzeige in Detail- und Bibliotheksansicht mit Kennzahl + Zeitstempel
+  (`PriceSectionView`, Sammlungswert-Kopf).
+- ✅ Sammlungswert + Kennzeichnung fehlender/veralteter Preise
+  (`CollectionValueCalculator`, `PriceFreshness`).
+- ✅ Offline: letzter Stand mit „veraltet"-Hinweis (Badge + relative Zeit).
+- ✅ Verlaufsdaten (Historie: neuer Datensatz nur bei Preisänderung).
+- ✅ Unit-Tests mit Stub-HTTPClient/StubPriceProvider + In-Memory-SwiftData
+  (reales TCGdex-JSON als Fixture).
 
 **Definition of Done:** Preise korrekt gekennzeichnet; Sammlungswert weist
 fehlende Daten ehrlich aus.
+
+> **Status:** Die Implementierung ist committet und die Unit-Tests sind im CI
+> **grün**. Die Preisdaten selbst wurden noch **nicht** mit einem echten
+> TCGdex-Live-Abruf in der App verifiziert – das erfordert einen Lauf auf dem
+> iPad/Gerät.
+
 
 ---
 

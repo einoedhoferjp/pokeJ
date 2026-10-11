@@ -22,7 +22,10 @@ ausführbare Tests werden ausdrücklich als **nicht ausgeführt** gekennzeichnet
   (Stub-HTTPClient), `ScanProcessorTests` (Stub-Recognizer),
   `CardImagePreprocessorTests` (reine Koordinatenlogik).
 - **Phase 3:** Variante→Preis-Zuordnung, Kennzahlen, Sammlungswert, veraltete
-  Daten, Offline-Verhalten.
+  Daten, Offline-Verhalten. In CI abgedeckt: `TCGdexPriceProviderTests`
+  (reales JSON-Fixture), `CollectionValueCalculatorTests`, `PriceFreshnessTests`,
+  `PriceResolverTests`, `RefreshPricesUseCaseTests`, `PriceServiceTests`
+  (In-Memory-SwiftData).
 - **Phase 4:** Bildqualitätsprüfung, Zentrierung, Zustandsschätzung +
   Unsicherheit, manuelle Korrektur.
 - **Phase 5:** Synchronisierung (Konfliktfälle, kein Datenverlust).
