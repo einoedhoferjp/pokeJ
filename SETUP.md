@@ -111,5 +111,29 @@ jobs:
 
 - ✅ Deployment-Target: **iOS 17+** (ermöglicht SwiftData).
 - ✅ Build-Weg: **GitHub-Actions-CI + Sideloading (kostenlos)**.
-- ⬜ Bundle-ID festlegen (Vorschlag: `local.pokej.app`).
-- ⬜ Repository öffentlich oder privat? (öffentlich = kostenlos/unbegrenzt).
+- ✅ Bundle-ID: `local.pokej.app`.
+- ✅ Repository: **privat** (begrenztes monatliches macOS-Minutenbudget).
+- ⚠️ Bei privatem Repo ist das macOS-Minutenbudget knapp → CI sparsam
+  einsetzen (nicht bei jedem Zwischen-Commit).
+
+## 9. Phase 1 – Nächste Schritte zum ersten Build
+
+1. **Privates GitHub-Repository** anlegen und dieses Verzeichnis pushen:
+   ```powershell
+   git remote add origin https://github.com/<user>/pokeJ.git
+   git push -u origin main
+   ```
+2. Der Workflow `.github/workflows/ci.yml` läuft bei Push auf `main` und
+   generiert das Projekt via XcodeGen, baut und testet auf einem macOS-Runner.
+3. **Ergebnis prüfen:** Der Lauf ist die erste echte Verifikation von Build und
+   Tests. Bis dahin gilt der Code als **nicht kompiliert/getestet**.
+4. Optional zur Installation aufs iPad: Artifact/build herunterladen und per
+   **Sideloadly** mit freier Apple ID installieren (7-Tage-Profil).
+
+### Lokales Vorab-Setup (Windows)
+
+```powershell
+winget install --id Git.Git -e --source winget     # bereits erledigt
+# Sideloadly (optional, für Geräteinstallation):
+winget install --id Sideloadly.Sideloadly -e
+```

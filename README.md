@@ -4,8 +4,9 @@ iOS-App zur Verwaltung einer Pokémon-Sammelkartensammlung: Karten mit der
 Kamera (iPad/iPhone) erfassen, automatisch identifizieren, der Bibliothek
 hinzufügen, den Zustand einschätzen und Cardmarket-Preise anzeigen.
 
-> **Status:** Phase 0 abgeschlossen (Recherche, Architektur, Datenmodell,
-> Roadmap, Risiken). Es existiert noch **kein App-Code**. Siehe `ROADMAP.md`.
+> **Status:** Phase 1 in Arbeit. App-Code (SwiftUI + SwiftData + Bibliothek)
+> ist geschrieben, aber **noch nicht kompiliert/getestet** – die Verifikation
+> erfolgt über den GitHub-Actions-CI-Workflow auf macOS. Siehe `ROADMAP.md`.
 
 ---
 

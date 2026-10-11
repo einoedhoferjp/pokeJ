@@ -23,22 +23,29 @@ iPad; Deployment-Target = iOS 17+; Datenquelle = TCGdex.
 
 ---
 
-## Phase 1 — Minimal funktionsfähige App ⬜
+## Phase 1 — Minimal funktionsfähige App 🚧
 
 Ziel: eine offline nutzbare App, die die Sammlung bereits sinnvoll verwaltet.
 
-- ⬜ SwiftUI-Projektgerüst (universell, iPad zuerst), iOS 17+.
-- ⬜ SwiftData-Modell (Card, CardVariant, CollectionItem, …).
-- ⬜ `CardDataProvider`/`PriceProvider` als Protokoll + `MockCardDataProvider`.
-- ⬜ Seed-Datensatz (klein, offline).
-- ⬜ Bibliotheksansicht (Raster) mit Suche, Filter, Sortierung.
-- ⬜ Karte manuell hinzufügen/bearbeiten/löschen (Sprache, Variante, Zustand).
-- ⬜ Kartendetailansicht (ohne Preise).
-- ⬜ Basis-Unit-Tests (Datenmodell, Repositories).
-- ⬜ Build über den festgelegten Weg (CI) verifiziert.
+- ✅ SwiftUI-Projektgerüst (universell, iPad zuerst), iOS 17+ (`project.yml`).
+- ✅ SwiftData-Modell (Card, CardVariant, CollectionItem, PriceSnapshot,
+  ScanRecord, ConditionAssessment).
+- ✅ `CardDataProvider`/`PriceProvider` als Protokoll + `MockCardDataProvider`.
+- ✅ Seed-Datensatz (klein, offline, idempotent).
+- ✅ Bibliotheksansicht (Raster) mit Suche, Filter, Sortierung.
+- ✅ Karte manuell hinzufügen/bearbeiten/löschen (Sprache, Variante, Zustand).
+- ✅ Kartendetailansicht (ohne Preise, mit Platzhalter-Hinweis).
+- ✅ Basis-Unit-Tests (Datenmodell, Filter, Mock-Provider).
+- ⬜ Build über CI verifiziert (GitHub-Actions-Workflow angelegt, noch nicht
+  ausgeführt – kein macOS lokal, privates Repo muss zuerst existieren).
+- ⬜ Installation auf dem iPad per Sideloading (7-Tage-Profil).
 
 **Definition of Done:** App startet, Sammlung bleibt nach Neustart erhalten,
 manuelles Anlegen mehrerer Zustände derselben Karte funktioniert.
+
+> **Ehrlicher Status:** Der Swift-Code ist geschrieben, aber **noch nicht
+> kompiliert oder getestet** – das erfordert den CI-Lauf auf macOS. Es werden
+> keine Testergebnisse behauptet, die nicht vorliegen.
 
 ---
 
