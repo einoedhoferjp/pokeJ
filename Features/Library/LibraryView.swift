@@ -6,7 +6,19 @@ struct LibraryView: View {
     @Query(sort: \CollectionItem.createdAt, order: .reverse) private var items: [CollectionItem]
 
     @State private var filter = LibraryFilter()
-    @State private var showingAdd = false
+    @State private var activeSheet: LibrarySheet?
+
+    private enum LibrarySheet: Identifiable {
+        case scanner
+        case add
+
+        var id: String {
+            switch self {
+            case .scanner: return "scanner"
+            case .add: return "add"
+            }
+        }
+    }
 
     private var visibleItems: [CollectionItem] {
         filter.apply(to: items)
@@ -36,14 +48,26 @@ struct LibraryView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        showingAdd = true
+                        activeSheet = .scanner
+                    } label: {
+                        Label("Scannen", systemImage: "camera.viewfinder")
+                    }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        activeSheet = .add
                     } label: {
                         Label("Hinzufügen", systemImage: "plus")
                     }
                 }
             }
-            .sheet(isPresented: $showingAdd) {
-                AddEditCardView(mode: .add)
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .scanner:
+                    ScannerView()
+                case .add:
+                    AddEditCardView(mode: .add)
+                }
             }
             .onAppear {
                 SeedLoader.seedIfNeeded(in: context)

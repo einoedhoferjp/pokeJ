@@ -9,9 +9,15 @@ struct AddEditCardView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Environment(\.cardDataProvider) private var provider
 
     let mode: Mode
-    private let provider: CardDataProvider = MockCardDataProvider()
+    private let preselected: CardBrief?
+
+    init(mode: Mode, preselected: CardBrief? = nil) {
+        self.mode = mode
+        self.preselected = preselected
+    }
 
     @State private var query = ""
     @State private var results: [CardBrief] = []
@@ -83,7 +89,7 @@ struct AddEditCardView: View {
                         .disabled(!canSave)
                 }
             }
-            .onAppear(perform: loadForEdit)
+            .onAppear(perform: onAppear)
             .task(id: query) { await runSearch() }
         }
     }
@@ -138,8 +144,17 @@ struct AddEditCardView: View {
             results = []
             return
         }
+        try? await Task.sleep(nanoseconds: 250_000_000)
+        if Task.isCancelled { return }
         let request = CardQuery(text: text, language: language)
         results = (try? await provider.searchCards(request)) ?? []
+    }
+
+    private func onAppear() {
+        if case .add = mode, let preselected {
+            selectedCard = preselected
+        }
+        loadForEdit()
     }
 
     private func loadForEdit() {
