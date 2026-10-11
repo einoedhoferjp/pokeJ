@@ -1,5 +1,6 @@
-import SwiftUI
 import Charts
+import SwiftData
+import SwiftUI
 
 struct PriceHistoryChartView: View {
     let productId: String

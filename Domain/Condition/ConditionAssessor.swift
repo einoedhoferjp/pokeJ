@@ -5,7 +5,7 @@ struct ConditionAssessor {
     let estimator: (ConditionMetrics) -> (condition: CardCondition, confidence: Double)
 
     init(analyzer: @escaping (CGImage) -> ConditionMetrics = ConditionFeatureAnalyzer.metrics,
-         estimator: @escaping (ConditionMetrics) -> (condition: CardCondition, confidence: Double) = ConditionHeuristic.estimate) {
+         estimator: @escaping (ConditionMetrics) -> (condition: CardCondition, confidence: Double) = { metrics in ConditionHeuristic.estimate(from: metrics) }) {
         self.analyzer = analyzer
         self.estimator = estimator
     }
