@@ -24,6 +24,7 @@ targets:
       - path: Domain
       - path: Data
       - path: Features
+      - path: Resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: local.pokej.app

@@ -26,6 +26,7 @@ struct ScannerView: View {
     @State private var outcome: IdentifyOutcome?
     @State private var scanRecord: ScanRecord?
     @State private var scanLanguage: Language = .de
+    @State private var isCooldown = false
 
     @State private var showCamera = false
     @State private var showPicker = false
@@ -79,15 +80,15 @@ struct ScannerView: View {
                     } label: {
                         Label("Sprache: \(scanLanguage.displayName)", systemImage: "globe")
                     }
-                    .disabled(state == .processing)
+                    .disabled(state == .processing || isCooldown)
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         presentCapture()
                     } label: {
-                        Label("Neu scannen", systemImage: "viewfinder")
+                        Label(isCooldown ? "Bitte warten …" : "Neu scannen", systemImage: isCooldown ? "hourglass" : "viewfinder")
                     }
-                    .disabled(state == .processing)
+                    .disabled(state == .processing || isCooldown)
                 }
             }
         }
@@ -107,8 +108,11 @@ struct ScannerView: View {
             Task { await loadPicked(item) }
         }
         .sheet(item: $addTarget) { target in
-            AddEditCardView(mode: .add, preselected: target.brief, language: scanLanguage)
+            AddEditCardView(mode: .add, preselected: target.brief, language: scanLanguage) {
+                dismiss()
+            }
         }
+        .sensoryFeedback(.success, trigger: outcome?.status ?? .noMatch)
     }
 
     // MARK: - Zustandsansichten
@@ -125,8 +129,15 @@ struct ScannerView: View {
                 Label(cameraAvailable ? "Kamera öffnen" : "Foto auswählen", systemImage: cameraAvailable ? "camera" : "photo.on.rectangle")
             }
             .buttonStyle(.borderedProminent)
+            .disabled(isCooldown)
             if cameraAvailable {
                 Button("Foto aus der Mediathek") { showPicker = true }
+                    .disabled(isCooldown)
+            }
+            if isCooldown {
+                Text("Kurze Pause, damit die nächste Karte erfasst werden kann …")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -144,6 +155,14 @@ struct ScannerView: View {
     @ViewBuilder
     private var resultView: some View {
         List {
+            if outcome?.status == .recognized {
+                Section {
+                    SuccessCheckmark()
+                        .frame(maxWidth: .infinity)
+                }
+                .listRowBackground(Color.clear)
+            }
+
             if let fields {
                 Section("Erkannt") {
                     if fields.isEmpty {
@@ -243,10 +262,20 @@ struct ScannerView: View {
     // MARK: - Aktionen
 
     private func presentCapture() {
+        guard !isCooldown else { return }
         if cameraAvailable {
             showCamera = true
         } else {
             showPicker = true
+        }
+    }
+
+    @MainActor
+    private func beginCooldown() {
+        isCooldown = true
+        Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            isCooldown = false
         }
     }
 
@@ -276,8 +305,10 @@ struct ScannerView: View {
             outcome = result.outcome
             record(fields: result.fields, outcome: result.outcome)
             state = .result
+            beginCooldown()
         } catch {
             state = .failed("Die Kartenerkennung ist fehlgeschlagen. Bitte erneut versuchen.")
+            beginCooldown()
         }
     }
 

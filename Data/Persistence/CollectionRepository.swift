@@ -51,4 +51,21 @@ struct CollectionRepository {
         item.variant = variant
         context.insert(item)
     }
+
+    /// Sucht ein identisches Exemplar (gleiche Variante, gleicher Zustand,
+    /// gleiche Notiz), um die Anzahl zu erhöhen statt neu anzulegen.
+    func existingItem(
+        card: Card,
+        language: Language,
+        printing: Printing,
+        condition: CardCondition,
+        notes: String
+    ) -> CollectionItem? {
+        guard let variant = variant(matching: card, language: language, printing: printing) else {
+            return nil
+        }
+        return variant.collectionItems.first {
+            $0.confirmedCondition == condition && $0.notes == notes
+        }
+    }
 }

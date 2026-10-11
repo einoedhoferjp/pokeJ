@@ -48,7 +48,7 @@ einzige tragfähige Weg:
 |---|---|---|
 | Kartendaten/-preise | **kein** Key (TCGdex) | 0 € |
 | Cardmarket | **kein** Zugang nötig (Preise über TCGdex) | 0 € |
-| Code-Hosting + CI | GitHub-Konto (öffentliches Repo) | 0 € |
+| Code-Hosting + CI | GitHub-Konto (Repo **privat**) | 0 € |
 | Geräteinstallation | kostenlose **Apple ID** (Personal Team) | 0 € |
 | Sideload-Tool | Sideloadly oder AltServer (Windows) | 0 € |
 | Backend (Phase 5) | Supabase Free Tier (optional) | 0 € |
@@ -56,6 +56,21 @@ einzige tragfähige Weg:
 **Sicherheit:** Private Keys/Zertifikate **niemals** committen. In CI als
 Secrets (Base64) ablegen. Für die freie Gerätesignierung wird **keine**
 CI-Signierung benötigt (unsigniert bauen, lokal per Sideload signieren).
+
+### 3.1 App-Login (Demo)
+
+Die App hat einen **lokalen** Login ohne Server. Die Passwörter sind nur als
+gesalzene SHA-256-Hashes im Code (`AuthService`) hinterlegt.
+
+| Benutzername | Passwort | Rolle |
+|---|---|---|
+| `admin` | `admin` | Administrator |
+| `pokefan` | `pikachu` | Pokéfan |
+| `test` | `test` | Testkonto |
+| `sammler` | `glueckspilz` | Sammler |
+
+> **Hinweis:** Das ist ein **Demo-Schutz**, keine echte Zugriffssicherheit. Für
+> Mehrbenutzer/Cloud (Phase 5) wird auf Supabase-Auth umgestellt.
 
 ## 4. Lokales Setup auf Windows
 

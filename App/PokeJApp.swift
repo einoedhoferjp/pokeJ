@@ -24,7 +24,8 @@ struct PokeJApp: App {
 
     var body: some Scene {
         WindowGroup {
-            LibraryView()
+            RootView()
+                .tint(AppTheme.accent)
         }
         .modelContainer(container)
     }

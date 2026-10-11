@@ -4,9 +4,10 @@ iOS-App zur Verwaltung einer Pokémon-Sammelkartensammlung: Karten mit der
 Kamera (iPad/iPhone) erfassen, automatisch identifizieren, der Bibliothek
 hinzufügen, den Zustand einschätzen und Cardmarket-Preise anzeigen.
 
-> **Status:** Phase 1 in Arbeit. App-Code (SwiftUI + SwiftData + Bibliothek)
-> ist geschrieben, aber **noch nicht kompiliert/getestet** – die Verifikation
-> erfolgt über den GitHub-Actions-CI-Workflow auf macOS. Siehe `ROADMAP.md`.
+> **Status:** Phasen 1–3 sind committet und im CI **grün** (Build + Unit-Tests).
+> Phase 3.5 (Login, Offline-Gesamtkatalog, Design/QoL) ist implementiert, die
+> CI-Verifikation dieser Änderungen und der Gerätetest (iPad) stehen noch aus.
+> Siehe `ROADMAP.md`.
 
 ---
 
@@ -22,6 +23,8 @@ hinzufügen, den Zustand einschätzen und Cardmarket-Preise anzeigen.
    Grading-Behauptung).
 6. Aktuelle Cardmarket-Preise anzeigen, Herkunft und Aktualität kennzeichnen.
 7. Sammlungswert berechnen und (später) Wertentwicklung speichern.
+8. Lokale Anmeldung (Demo-Accounts) als Einstieg.
+9. Gesamten Katalog (alle Sets/Karten) offline durchsuchen und live bepreisen.
 
 ## Technischer Stack (geplant)
 
@@ -76,7 +79,8 @@ Documentation/  (Doku liegt vorerst im Wurzelverzeichnis)
 ## Kosten (Kurzfassung)
 
 - **Kostenlos:** TCGdex (Daten + Preise), Apple Vision/Core Image, SwiftData,
-  OpenCV, Supabase Free Tier, GitHub-Actions-macOS-Runner (public repo).
+  OpenCV, Supabase Free Tier, GitHub-Actions-macOS-Runner (privates Repo:
+  begrenztes macOS-Minutenkontingent).
 - **Kostenpflichtig, erforderlich:** Apple Developer Program (99 €/Jahr),
   Testgerät (iPad/iPhone), **Mac-Zugang** (Cloud-Mac-Abo oder Mac mini).
 - **Optional:** Supabase Pro, kostenpflichtige CI.

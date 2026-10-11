@@ -43,6 +43,19 @@ Dokumentationen entnommen (siehe Quellen unten). Nichts ist erfunden.
 
 ---
 
+## 1b. Offline-Gesamtkatalog (gebündelt)
+
+- **Datei:** `Resources/PokemonCatalog.json` (im App-Bundle enthalten).
+- **Umfang:** 155 Sets / 20 483 Karten (Sprache **de**), erzeugt aus
+  `GET /v2/de/sets` + `GET /v2/de/cards`.
+- **Felder je Karte:** `id`, `localId`, `name`, `image` (Basis-URL). **Keine**
+  Preise – diese würden veralten und werden live geladen.
+- **Nutzen:** vollständiges Durchsuchen aller Sets/Karten **ohne Netz**;
+  Bilder werden bei Bedarf aus `assets.tcgdex.net` nachgeladen.
+- **Aktualisierung:** manuell per Skript; kein Lauf zur Build-Zeit.
+
+---
+
 ## 2. Cardmarket — offizielle API (NICHT genutzt)
 
 - **OAuth 1.0** (HMAC-SHA1-signierte Requests).

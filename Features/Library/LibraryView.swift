@@ -4,6 +4,7 @@ import SwiftData
 struct LibraryView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.priceProvider) private var priceProvider
+    @EnvironmentObject private var auth: AuthStore
     @Query(sort: \CollectionItem.createdAt, order: .reverse) private var items: [CollectionItem]
     @Query(sort: \PriceSnapshot.fetchedAt, order: .reverse) private var allSnapshots: [PriceSnapshot]
 
@@ -50,6 +51,22 @@ struct LibraryView: View {
             .navigationTitle("Sammlung")
             .searchable(text: $filter.searchText, prompt: "Name oder Kartennummer")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        if let user = auth.currentUser {
+                            Section(user.displayName) {
+                                Label(user.username, systemImage: "person.crop.circle")
+                            }
+                        }
+                        Button(role: .destructive) {
+                            auth.logout()
+                        } label: {
+                            Label("Abmelden", systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+                    } label: {
+                        Label("Konto", systemImage: "person.crop.circle")
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         activeSheet = .scanner
@@ -91,7 +108,7 @@ struct LibraryView: View {
                         } label: {
                             CollectionItemCard(item: item)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PressableCardStyle())
                         .contextMenu {
                             Button(role: .destructive) {
                                 context.delete(item)
@@ -156,6 +173,10 @@ struct LibraryView: View {
 
     // MARK: - Preise
 
+    private var totalQuantity: Int {
+        items.reduce(0) { $0 + $1.quantity }
+    }
+
     private var valueSummary: some View {
         let value = collectionValue
         return VStack(alignment: .leading, spacing: 4) {
@@ -181,6 +202,7 @@ struct LibraryView: View {
                 }
             }
             HStack(spacing: 12) {
+                Label("\(totalQuantity) Karten", systemImage: "shippingbox")
                 if value.unpricedCount > 0 {
                     Label("\(value.unpricedCount) ohne Preis", systemImage: "questionmark.circle")
                 }
@@ -252,6 +274,7 @@ struct LibraryView: View {
 
 #Preview {
     LibraryView()
+        .environmentObject(AuthStore())
         .modelContainer(PreviewData.container)
 }
 

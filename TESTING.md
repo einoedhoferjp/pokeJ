@@ -26,6 +26,10 @@ ausführbare Tests werden ausdrücklich als **nicht ausgeführt** gekennzeichnet
   (reales JSON-Fixture), `CollectionValueCalculatorTests`, `PriceFreshnessTests`,
   `PriceResolverTests`, `RefreshPricesUseCaseTests`, `PriceServiceTests`
   (In-Memory-SwiftData).
+- **Phase 3.5:** Login (gesalzene SHA-256-Hashes, Sitzungspersistenz),
+  Duplikat-Zusammenfassung. In CI abgedeckt: `AuthServiceTests`
+  (Hash-Vektor + Probe-Accounts + `AuthStore` mit eigener `UserDefaults`-Suite),
+  `CollectionRepositoryTests` (u. a. `existingItem`/Varianten-Wiederverwendung).
 - **Phase 4:** Bildqualitätsprüfung, Zentrierung, Zustandsschätzung +
   Unsicherheit, manuelle Korrektur.
 - **Phase 5:** Synchronisierung (Konfliktfälle, kein Datenverlust).

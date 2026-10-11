@@ -100,6 +100,28 @@ fehlende Daten ehrlich aus.
 
 ---
 
+## Phase 3.5 — Login, Offline-Katalog & Feinschliff 🚧
+
+Nachfreigabe des Nutzers; baut auf Phase 1–3 auf.
+
+- ✅ Lokaler Login (Probe-Accounts, gesalzene SHA-256-Hashes, Sitzung über
+  `UserDefaults`) – `AuthService`, `AuthStore`, `LoginView`, `RootView`.
+- ✅ App-Wurzel schaltet zwischen Login und `TabView` („Sammlung", „Sets").
+- ✅ Offline-Gesamtkatalog (155 Sets / 20483 Karten aus TCGdex, `Resources/
+  PokemonCatalog.json`) mit Set-Browser, Kartensuche, Detailansicht inkl.
+  Live-Preis (`SetBrowserView`, `CatalogCardDetailView`, `PokemonCatalog`).
+- ✅ Design-Theming (Pokémon-Rot/Gold, Verläufe, Karten-Radius) und
+  Button-Effekte/Haptik (`AppTheme`, `ButtonStyles`).
+- ✅ Scanner-QoL: 3-s-Nachlauf, Statushilfen, deutlich sichtbarer Erfolg.
+- ✅ Speichern-Härtung: Fehlerdialog statt stillem `try?`; optionales
+  Zusammenfassen identischer Karten; Gesamtzahl im Bibliothekskopf.
+- ⬜ Verifikation der neuen Funktionen im CI (Build + Tests) **und** auf dem iPad.
+
+> **Status:** Implementierung committet; CI-Verifikation und Gerätetest stehen
+> noch aus. Zutreffende Probe-Zugangsdaten siehe `SETUP.md`.
+
+---
+
 ## Phase 4 — Zustandsbewertung ⬜
 
 - ⬜ Aufnahme Vorder-/Rückseite.
@@ -132,5 +154,6 @@ fehlende Daten ehrlich aus.
 | M1 Nutzbare App | 1 | Sammlung offline verwaltbar, CI-Build grün |
 | M2 Scan | 2 | Karte scannen → bestätigen → speichern |
 | M3 Preise | 3 | Cardmarket-Preise korrekt gekennzeichnet |
+| M3.5 Login/Katalog | 3.5 | Login + Offline-Gesamtkatalog nutzbar |
 | M4 Zustand | 4 | Zustand schätzbar + korrigierbar |
 | M5 Cloud/ML | 5 | Sync/ML/Export nach Bedarf |
