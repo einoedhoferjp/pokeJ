@@ -3,6 +3,8 @@ import SwiftData
 @testable import PokeJ
 
 final class DataModelTests: XCTestCase {
+    private var container: ModelContainer!
+
     @MainActor
     private func makeContext() throws -> ModelContext {
         let schema = Schema([
@@ -14,7 +16,7 @@ final class DataModelTests: XCTestCase {
             ConditionAssessment.self
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [configuration])
+        container = try ModelContainer(for: schema, configurations: [configuration])
         return container.mainContext
     }
 

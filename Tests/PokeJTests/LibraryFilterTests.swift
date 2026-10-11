@@ -3,11 +3,13 @@ import SwiftData
 @testable import PokeJ
 
 final class LibraryFilterTests: XCTestCase {
+    private var container: ModelContainer!
+
     @MainActor
     private func makeItems() throws -> (ModelContext, [CollectionItem]) {
         let schema = Schema([Card.self, CardVariant.self, CollectionItem.self, PriceSnapshot.self, ScanRecord.self, ConditionAssessment.self])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [configuration])
+        container = try ModelContainer(for: schema, configurations: [configuration])
         let context = container.mainContext
         let repository = CollectionRepository(context: context)
 
