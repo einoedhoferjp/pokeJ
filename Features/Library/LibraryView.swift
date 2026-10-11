@@ -3,10 +3,14 @@ import SwiftData
 
 struct LibraryView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.priceProvider) private var priceProvider
     @Query(sort: \CollectionItem.createdAt, order: .reverse) private var items: [CollectionItem]
+    @Query(sort: \PriceSnapshot.fetchedAt, order: .reverse) private var allSnapshots: [PriceSnapshot]
 
     @State private var filter = LibraryFilter()
     @State private var activeSheet: LibrarySheet?
+    @State private var isRefreshing = false
+    @State private var refreshNote: String?
 
     private enum LibrarySheet: Identifiable {
         case scanner
@@ -77,6 +81,7 @@ struct LibraryView: View {
 
     private var content: some View {
         VStack(spacing: 0) {
+            valueSummary
             filterBar
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
@@ -148,6 +153,101 @@ struct LibraryView: View {
         .padding(.vertical, 6)
         .background(Color.secondary.opacity(0.15), in: Capsule())
     }
+
+    // MARK: - Preise
+
+    private var valueSummary: some View {
+        let value = collectionValue
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Sammlungswert")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(PriceFormatting.currency(value.total, code: value.currency))
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                }
+                Spacer()
+                if isRefreshing {
+                    ProgressView()
+                } else {
+                    Button {
+                        Task { await refreshPrices() }
+                    } label: {
+                        Label("Preise aktualisieren", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            HStack(spacing: 12) {
+                if value.unpricedCount > 0 {
+                    Label("\(value.unpricedCount) ohne Preis", systemImage: "questionmark.circle")
+                }
+                if value.staleCount > 0 {
+                    Label("\(value.staleCount) veraltet", systemImage: "exclamationmark.triangle")
+                }
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            if let refreshNote {
+                Text(refreshNote)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+    }
+
+    private var pointsByProduct: [String: [PricePoint]] {
+        Dictionary(grouping: allSnapshots, by: { $0.cardmarketProductId }).mapValues { snapshots in
+            snapshots.map {
+                PricePoint(
+                    productId: $0.cardmarketProductId,
+                    metric: $0.metric,
+                    amount: $0.amount,
+                    currency: $0.currency,
+                    fetchedAt: $0.fetchedAt,
+                    source: $0.source,
+                    matchQuality: $0.matchQuality
+                )
+            }
+        }
+    }
+
+    private var collectionValue: CollectionValue {
+        let now = Date()
+        let valued = items.map { item -> ValuedItem in
+            let printing = item.variant?.printing ?? .normal
+            let points = item.variant?.cardmarketProductId.flatMap { pointsByProduct[$0] } ?? []
+            let latest = PriceResolver.latest(points: points, printing: printing)
+            let stale = latest.map { PriceFreshness.isStale(fetchedAt: $0.fetchedAt, now: now) } ?? false
+            return ValuedItem(
+                unitPrice: latest?.amount,
+                quantity: item.quantity,
+                isStale: stale,
+                currency: latest?.currency ?? "EUR"
+            )
+        }
+        return CollectionValueCalculator.compute(items: valued)
+    }
+
+    @MainActor
+    private func refreshPrices() async {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        refreshNote = nil
+        let service = PriceService(provider: priceProvider, context: context)
+        let summary = await service.refresh(items: items)
+        isRefreshing = false
+
+        var parts: [String] = []
+        if summary.insertedSnapshots > 0 { parts.append("\(summary.insertedSnapshots) neue Preisstände") }
+        if summary.updatedVariants > 0 { parts.append("\(summary.updatedVariants) Varianten aktualisiert") }
+        if summary.failedTargets > 0 { parts.append("\(summary.failedTargets) fehlgeschlagen") }
+        refreshNote = parts.isEmpty ? "Preise sind aktuell." : parts.joined(separator: " · ")
+    }
 }
 
 #Preview {
@@ -157,7 +257,7 @@ struct LibraryView: View {
 
 enum PreviewData {
     static let container: ModelContainer = {
-        let schema = Schema([Card.self, CardVariant.self, CollectionItem.self])
+        let schema = Schema([Card.self, CardVariant.self, CollectionItem.self, PriceSnapshot.self, ScanRecord.self, ConditionAssessment.self])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         do {
             return try ModelContainer(for: schema, configurations: [configuration])

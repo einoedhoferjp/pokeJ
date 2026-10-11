@@ -4,6 +4,7 @@ import SwiftData
 struct CardDetailView: View {
     let item: CollectionItem
     @State private var showingEdit = false
+    @Query(sort: \PriceSnapshot.fetchedAt, order: .reverse) private var allSnapshots: [PriceSnapshot]
 
     private var card: Card? { item.variant?.card }
     private var variant: CardVariant? { item.variant }
@@ -84,17 +85,24 @@ struct CardDetailView: View {
     }
 
     private var priceSection: some View {
-        GroupBox("Preis") {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Keine Preisdaten verfügbar.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Text("Cardmarket-Preise werden in Phase 3 über TCGdex geladen. Sie sind produktbezogen und nicht zustands- oder exemplargenau.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        PriceSectionView(printing: variant?.printing ?? .normal, points: pricePoints)
+    }
+
+    private var pricePoints: [PricePoint] {
+        guard let productId = variant?.cardmarketProductId else { return [] }
+        return allSnapshots
+            .filter { $0.cardmarketProductId == productId }
+            .map {
+                PricePoint(
+                    productId: $0.cardmarketProductId,
+                    metric: $0.metric,
+                    amount: $0.amount,
+                    currency: $0.currency,
+                    fetchedAt: $0.fetchedAt,
+                    source: $0.source,
+                    matchQuality: $0.matchQuality
+                )
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
     }
 
     private var notesSection: some View {

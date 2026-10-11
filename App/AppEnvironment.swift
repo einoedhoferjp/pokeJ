@@ -8,9 +8,18 @@ private struct CardDataProviderKey: EnvironmentKey {
     static let defaultValue: CardDataProvider = TCGdexProvider()
 }
 
+private struct PriceProviderKey: EnvironmentKey {
+    static let defaultValue: PriceProvider = TCGdexPriceProvider()
+}
+
 extension EnvironmentValues {
     var cardDataProvider: CardDataProvider {
         get { self[CardDataProviderKey.self] }
         set { self[CardDataProviderKey.self] = newValue }
+    }
+
+    var priceProvider: PriceProvider {
+        get { self[PriceProviderKey.self] }
+        set { self[PriceProviderKey.self] = newValue }
     }
 }
