@@ -21,11 +21,11 @@ struct ScannerView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.cardDataProvider) private var provider
 
-    @State private var processor: ScanProcessor?
     @State private var state: ScanState = .idle
     @State private var fields: OCRFields?
     @State private var outcome: IdentifyOutcome?
     @State private var scanRecord: ScanRecord?
+    @State private var scanLanguage: Language = .de
 
     @State private var showCamera = false
     @State private var showPicker = false
@@ -70,6 +70,18 @@ struct ScannerView: View {
                     Button("Fertig") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Picker("Sprache", selection: $scanLanguage) {
+                            ForEach(Language.allCases) { language in
+                                Text(language.displayName).tag(language)
+                            }
+                        }
+                    } label: {
+                        Label("Sprache: \(scanLanguage.displayName)", systemImage: "globe")
+                    }
+                    .disabled(state == .processing)
+                }
+                ToolbarItem(placement: .primaryAction) {
                     Button {
                         presentCapture()
                     } label: {
@@ -77,11 +89,6 @@ struct ScannerView: View {
                     }
                     .disabled(state == .processing)
                 }
-            }
-        }
-        .onAppear {
-            if processor == nil {
-                processor = ScanProcessor(provider: provider, language: .en)
             }
         }
         .fullScreenCover(isPresented: $showCamera) {
@@ -100,7 +107,7 @@ struct ScannerView: View {
             Task { await loadPicked(item) }
         }
         .sheet(item: $addTarget) { target in
-            AddEditCardView(mode: .add, preselected: target.brief)
+            AddEditCardView(mode: .add, preselected: target.brief, language: scanLanguage)
         }
     }
 
@@ -174,6 +181,20 @@ struct ScannerView: View {
                 }
             }
 
+            if let fields, !fields.rawLines.isEmpty {
+                Section("Diagnose") {
+                    DisclosureGroup("Erkannter Text (OCR)") {
+                        ForEach(Array(fields.rawLines.enumerated()), id: \.offset) { _, line in
+                            Text(line)
+                                .font(.caption)
+                                .textSelection(.enabled)
+                        }
+                    }
+                    row("Suchsprache", scanLanguage.displayName)
+                    row("Kandidaten", "\(outcome?.matches.count ?? 0)")
+                }
+            }
+
             Section {
                 Button {
                     addTarget = .fresh
@@ -242,12 +263,13 @@ struct ScannerView: View {
 
     @MainActor
     private func run(image: UIImage) async {
-        guard let processor, let normalized = CardImagePreprocessor.normalizedCGImage(from: image) else {
+        guard let normalized = CardImagePreprocessor.normalizedCGImage(from: image) else {
             state = .failed("Das Bild konnte nicht verarbeitet werden.")
             return
         }
         state = .processing
         let prepared = preprocess(normalized)
+        let processor = ScanProcessor(provider: provider, language: scanLanguage)
         do {
             let result = try await processor.process(image: prepared, orientation: .up)
             fields = result.fields

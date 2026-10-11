@@ -13,10 +13,12 @@ struct AddEditCardView: View {
 
     let mode: Mode
     private let preselected: CardBrief?
+    private let preselectedLanguage: Language?
 
-    init(mode: Mode, preselected: CardBrief? = nil) {
+    init(mode: Mode, preselected: CardBrief? = nil, language: Language? = nil) {
         self.mode = mode
         self.preselected = preselected
+        self.preselectedLanguage = language
     }
 
     @State private var query = ""
@@ -151,8 +153,9 @@ struct AddEditCardView: View {
     }
 
     private func onAppear() {
-        if case .add = mode, let preselected {
-            selectedCard = preselected
+        if case .add = mode {
+            if let preselected { selectedCard = preselected }
+            if let preselectedLanguage { language = preselectedLanguage }
         }
         loadForEdit()
     }

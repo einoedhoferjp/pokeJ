@@ -8,8 +8,9 @@ struct IdentifyCardUseCase {
     let provider: CardDataProvider
 
     static let recognizedThreshold = 0.8
-    static let likelyThreshold = 0.5
+    static let likelyThreshold = 0.4
     static let closeCallGap = 0.1
+    static let maxMatches = 25
 
     func identify(fields: OCRFields, language: Language) async throws -> IdentifyOutcome {
         guard !fields.isEmpty else {
@@ -20,14 +21,28 @@ struct IdentifyCardUseCase {
         var seen = Set<String>()
 
         for query in searchQueries(for: fields) {
-            let results = (try? await provider.searchCards(CardQuery(text: query, language: language))) ?? []
-            for brief in results where seen.insert(brief.id).inserted {
-                candidates.append(brief)
+            for lang in Self.searchLanguages(preferred: language) {
+                let results = (try? await provider.searchCards(CardQuery(text: query, language: lang))) ?? []
+                for brief in results where seen.insert(brief.id).inserted {
+                    candidates.append(brief)
+                }
             }
         }
 
-        let matches = CardMatcher.match(fields: fields, candidates: candidates)
+        let matches = Array(CardMatcher.match(fields: fields, candidates: candidates).prefix(Self.maxMatches))
         return IdentifyOutcome(status: Self.status(for: matches), matches: matches)
+    }
+
+    /// Sucht bevorzugt in der gewählten Sprache und zusätzlich in den
+    /// Hauptsprachen der Datenquelle. Kartennamen unterscheiden sich je
+    /// Sprache (z. B. „Glurak" vs. „Charizard"), daher reicht eine Sprache
+    /// nicht aus.
+    static func searchLanguages(preferred: Language) -> [Language] {
+        var languages: [Language] = [preferred]
+        for language in [Language.de, .en] where language != preferred {
+            languages.append(language)
+        }
+        return languages
     }
 
     private func searchQueries(for fields: OCRFields) -> [String] {

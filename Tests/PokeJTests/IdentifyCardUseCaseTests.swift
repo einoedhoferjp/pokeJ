@@ -20,6 +20,20 @@ final class IdentifyCardUseCaseTests: XCTestCase {
         XCTAssertTrue(outcome.matches.isEmpty)
     }
 
+    func testNameOnlyMatchIsLikely() async throws {
+        let fields = OCRFields(nameCandidates: ["Furret"])
+        let outcome = try await makeUseCase().identify(fields: fields, language: .en)
+        XCTAssertFalse(outcome.matches.isEmpty)
+        XCTAssertEqual(outcome.status, .likely)
+        XCTAssertEqual(outcome.matches.first?.brief.id, "swsh3-136")
+    }
+
+    func testSearchLanguagesFallsBackToGermanAndEnglish() {
+        XCTAssertEqual(IdentifyCardUseCase.searchLanguages(preferred: .de), [.de, .en])
+        XCTAssertEqual(IdentifyCardUseCase.searchLanguages(preferred: .en), [.en, .de])
+        XCTAssertEqual(IdentifyCardUseCase.searchLanguages(preferred: .fr), [.fr, .de, .en])
+    }
+
     func testUnknownCardReturnsNoMatch() async throws {
         let fields = OCRFields(nameCandidates: ["Zzzunknownmon"], number: "9999")
         let outcome = try await makeUseCase().identify(fields: fields, language: .en)
