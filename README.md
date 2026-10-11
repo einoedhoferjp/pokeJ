@@ -66,6 +66,7 @@ Documentation/  (Doku liegt vorerst im Wurzelverzeichnis)
 ## Dokumentation
 
 - `GETTING_STARTED.md` — **Schritt-für-Schritt: Code auf GitHub + erster Build**
+- `INSTALL.md` — **Schritt-für-Schritt: App aufs iPad installieren (ohne Mac)**
 - `ARCHITECTURE.md` — Architektur, Datenmodell, Entscheidungen, Risiken
 - `ROADMAP.md` — Phasen und Meilensteine
 - `DATA_SOURCES.md` — TCGdex, Cardmarket, Lizenzen, Rechte

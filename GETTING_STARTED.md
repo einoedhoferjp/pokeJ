@@ -91,6 +91,9 @@ zwischendurch mehrfach pushen.
 
 ## Schritt 5 – App aufs iPad installieren
 
+Ausführliche Anleitung (inkl. **AltStore** und **3uTools** als Alternativen zu
+Sideloadly sowie Problemlösung): siehe **`INSTALL.md`**. Kurzfassung:
+
 Der Workflow **`.github/workflows/ipa.yml`** baut ein **unsigniertes `.ipa`**.
 So kommst du auf das Gerät:
 

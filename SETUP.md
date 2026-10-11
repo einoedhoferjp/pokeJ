@@ -94,6 +94,9 @@ jobs:
 
 ## 6. Geräteinstallation ohne Developer-Programm (Sideloadly)
 
+> Vollständige Schritt-für-Schritt-Anleitung (auch mit **AltStore** und
+> **3uTools** als Alternativen zu Sideloadly): siehe **`INSTALL.md`**.
+
 1. Auf GitHub den Workflow **IPA** starten (Actions → *IPA* → **Run workflow**)
    oder einen Tag `v*` pushen.
 2. Nach dem Lauf das Artefakt **`PokeJ-unsigned-ipa`** herunterladen und
