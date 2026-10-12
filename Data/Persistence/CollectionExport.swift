@@ -22,7 +22,7 @@ struct CollectionExport {
         let dtos = items.compactMap { item -> ItemDTO? in
             guard let v = item.variant, let c = v.card else { return nil }
             return ItemDTO(
-                cardId: c.id,
+                cardId: c.externalId,
                 cardName: c.name,
                 setId: c.setId,
                 setName: c.setName,
@@ -63,7 +63,7 @@ struct CollectionExport {
                 }
                 return s
             }
-            return [c.id, c.name, c.setId, c.setName, c.localId, v.language.rawValue, v.printing.rawValue, item.confirmedCondition.rawValue, q, item.notes, price, pd, ca].map(esc).joined(separator: ",")
+            return [c.externalId, c.name, c.setId, c.setName, c.localId, v.language.rawValue, v.printing.rawValue, item.confirmedCondition.rawValue, q, item.notes, price, pd, ca].map(esc).joined(separator: ",")
         }
         return ([header] + rows).joined(separator: "\n")
     }

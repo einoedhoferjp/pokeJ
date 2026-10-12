@@ -33,7 +33,11 @@ ausführbare Tests werden ausdrücklich als **nicht ausgeführt** gekennzeichnet
 - **Phase 4:** Bildqualitätsprüfung, Zentrierung, Zustandsschätzung +
   Unsicherheit, manuelle Korrektur. In CI abgedeckt: `ConditionHeuristicsTests`,
   `ConditionAssessorTests` (synthetische Testbilder).
-- **Phase 5:** Synchronisierung (Konfliktfälle, kein Datenverlust), Export/Backup.
+- **Phase 5:** Synchronisierung (Konfliktfälle, kein Datenverlust), Export/Backup,
+  Import. In CI abgedeckt: `CollectionImportTests` (JSON-Round-Trip
+  Export→Import, additive Zusammenführung identischer Exemplare, Überspringen
+  unbekannter Werte). Preisverlauf-Chart und Datei-Export selbst erfordern die
+  App/UI.
 
 ## 3. Testkarten-Set (anzulegen)
 

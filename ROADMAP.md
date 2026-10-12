@@ -136,7 +136,8 @@ Nachfreigabe des Nutzers; baut auf Phase 1–3 auf.
 
 - ✅ Preisverlauf-Diagramme (Chart, gespeicherte Preisstände)
 - ✅ Export / Backup (JSON + CSV) aus Bibliothek
-- ⬜ Import (Backup wiederherstellen) – gezielt und sicher
+- ✅ Import (Backup wiederherstellen) – additiv, nie zerstörend; erkennt
+  identische Exemplare und erhöht die Anzahl; überspringt unbekannte Werte.
 - ⬜ Stapelscan (mehrere Karten nacheinander, mit Pause)
 - ⬜ Verbesserte Bilderkennung / eigenes Core-ML-Modell
 - ⬜ Supabase-Synchronisierung (optional, erst bei Bedarf)

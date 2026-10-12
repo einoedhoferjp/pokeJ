@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 struct ConditionCaptureView: View {
     @Environment(\.dismiss) private var dismiss
