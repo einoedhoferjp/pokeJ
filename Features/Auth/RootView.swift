@@ -3,6 +3,7 @@ import SwiftUI
 /// Wurzelansicht: zeigt den Login oder die Bibliothek, je nach Sitzung.
 struct RootView: View {
     @StateObject private var auth = AuthStore()
+    @StateObject private var points = PointsStore()
 
     var body: some View {
         Group {
@@ -10,6 +11,8 @@ struct RootView: View {
                 TabView {
                     LibraryView()
                         .tabItem { Label("Sammlung", systemImage: "rectangle.stack.fill") }
+                    PackShopView()
+                        .tabItem { Label("Packs", systemImage: "gift.fill") }
                     SetBrowserView()
                         .tabItem { Label("Sets", systemImage: "square.grid.2x2.fill") }
                 }
@@ -20,6 +23,7 @@ struct RootView: View {
             }
         }
         .environmentObject(auth)
+        .environmentObject(points)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: auth.isAuthenticated)
     }
 }

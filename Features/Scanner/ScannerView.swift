@@ -20,6 +20,7 @@ struct ScannerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @Environment(\.cardDataProvider) private var provider
+    @EnvironmentObject private var points: PointsStore
 
     @State private var state: ScanState = .idle
     @State private var fields: OCRFields?
@@ -27,6 +28,9 @@ struct ScannerView: View {
     @State private var scanRecord: ScanRecord?
     @State private var scanLanguage: Language = .de
     @State private var isCooldown = false
+
+    @State private var isBatchMode = false
+    @State private var batchCount = 0
 
     @State private var showCamera = false
     @State private var showPicker = false
@@ -90,6 +94,17 @@ struct ScannerView: View {
                     }
                     .disabled(state == .processing || isCooldown)
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        isBatchMode.toggle()
+                    } label: {
+                        Label(
+                            isBatchMode ? "Stapelscan an: \(batchCount)" : "Stapelscan",
+                            systemImage: "square.stack.3d.up.fill"
+                        )
+                    }
+                    .disabled(state == .processing || isCooldown)
+                }
             }
         }
         .fullScreenCover(isPresented: $showCamera) {
@@ -109,7 +124,7 @@ struct ScannerView: View {
         }
         .sheet(item: $addTarget) { target in
             AddEditCardView(mode: .add, preselected: target.brief, language: scanLanguage) {
-                dismiss()
+                handleConfirmedSave()
             }
         }
         .sensoryFeedback(.success, trigger: outcome?.status ?? .noMatch)
@@ -136,6 +151,11 @@ struct ScannerView: View {
             }
             if isCooldown {
                 Text("Kurze Pause, damit die nächste Karte erfasst werden kann …")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if isBatchMode {
+                Text("Stapelscan aktiv · \(batchCount) Karten in dieser Runde")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -211,6 +231,25 @@ struct ScannerView: View {
                     }
                     row("Suchsprache", scanLanguage.displayName)
                     row("Kandidaten", "\(outcome?.matches.count ?? 0)")
+                }
+            }
+
+            if isBatchMode {
+                Section {
+                    LabeledContent("In dieser Runde", value: "\(batchCount) Karten")
+                    Button {
+                        presentCapture()
+                    } label: {
+                        Label("Nächste Karte scannen", systemImage: "camera.viewfinder")
+                    }
+                    Button {
+                        dismiss()
+                    } label: {
+                        Label("Runde beenden", systemImage: "checkmark.circle")
+                    }
+                    .disabled(batchCount == 0)
+                } footer: {
+                    Text("Im Stapelscan wird nach jedem Bestätigen automatisch weitergescannt. Jede bestätigte Karte bringt +\(PointsStore.scanRewardPerCard) Punkte.")
                 }
             }
 
@@ -304,8 +343,16 @@ struct ScannerView: View {
             fields = result.fields
             outcome = result.outcome
             record(fields: result.fields, outcome: result.outcome)
-            state = .result
+state = .result
+        if isBatchMode {
+            isCooldown = true
+            Task {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                isCooldown = false
+            }
+        } else {
             beginCooldown()
+        }
         } catch {
             state = .failed("Die Kartenerkennung ist fehlgeschlagen. Bitte erneut versuchen.")
             beginCooldown()
@@ -341,5 +388,25 @@ struct ScannerView: View {
         scanRecord?.confidence = match.score
         try? context.save()
         addTarget = .candidate(match.brief)
+    }
+
+    /// Wird nach einem erfolgreich gespeicherten Hinzufügen aufgerufen.
+    @MainActor
+    private func handleConfirmedSave() {
+        points.awardScanReward()
+        if isBatchMode {
+            batchCount += 1
+            isCooldown = true
+            state = .idle
+            Task {
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                isCooldown = false
+                if isBatchMode {
+                    presentCapture()
+                }
+            }
+        } else {
+            dismiss()
+        }
     }
 }
