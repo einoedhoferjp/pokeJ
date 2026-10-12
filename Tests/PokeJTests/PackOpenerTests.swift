@@ -1,4 +1,5 @@
 import Foundation
+import XCTest
 @testable import PokeJ
 
 final class PackOpenerTests: XCTestCase {
@@ -36,6 +37,7 @@ struct DeterministicRNG: RandomNumberGenerator {
     mutating func next() -> UInt64 {
         if sequence.isEmpty { return 0 }
         let v = sequence.removeFirst()
+        sequence.append(v)
         return v
     }
 }
