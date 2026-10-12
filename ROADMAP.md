@@ -115,10 +115,11 @@ Nachfreigabe des Nutzers; baut auf Phase 1–3 auf.
 - ✅ Scanner-QoL: 3-s-Nachlauf, Statushilfen, deutlich sichtbarer Erfolg.
 - ✅ Speichern-Härtung: Fehlerdialog statt stillem `try?`; optionales
   Zusammenfassen identischer Karten; Gesamtzahl im Bibliothekskopf.
-- ⬜ Verifikation der neuen Funktionen im CI (Build + Tests) **und** auf dem iPad.
+- ✅ CI-Verifikation (Build + 83 Unit-Tests grün, 0 Fehlschläge).
+- ⬜ Gerätetest auf dem iPad (Kamera, Vision-OCR, Live-Preise).
 
-> **Status:** Implementierung committet; CI-Verifikation und Gerätetest stehen
-> noch aus. Zutreffende Probe-Zugangsdaten siehe `SETUP.md`.
+> **Status:** Implementierung committet und im CI **grün**; der Gerätetest auf
+> dem iPad steht noch aus. Zutreffende Probe-Zugangsdaten siehe `SETUP.md`.
 
 ---
 
