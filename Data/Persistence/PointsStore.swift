@@ -50,7 +50,8 @@ final class PointsStore: ObservableObject {
     }
 
     var canClaimDailyBonus: Bool {
-        !Calendar.current.isDateInToday(lastDailyBonus)
+        guard let lastDailyBonus else { return true }
+        return !Calendar.current.isDateInToday(lastDailyBonus)
     }
 
     @discardableResult
