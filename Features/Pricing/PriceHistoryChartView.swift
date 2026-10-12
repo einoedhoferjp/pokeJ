@@ -29,7 +29,7 @@ struct PriceHistoryChartView: View {
     }
 
     private func load() {
-        let descriptor = FetchDescriptor<PriceSnapshot>(sortBy: [SortDescriptor(\PriceSnapshot.fetchedAt, order: .ascending)])
+        let descriptor = FetchDescriptor<PriceSnapshot>(sortBy: [SortDescriptor(\PriceSnapshot.fetchedAt, order: .forward)])
         if let all = try? context.fetch(descriptor) {
             snapshots = all
         }
