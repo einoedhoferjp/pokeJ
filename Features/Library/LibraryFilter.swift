@@ -21,7 +21,7 @@ enum LibrarySort: String, CaseIterable, Identifiable {
 
 struct LibraryFilter: Equatable {
     var searchText: String = ""
-    var searchMode: SearchMode = .number
+    var searchMode: LibrarySearchMode = .number
     var language: Language?
     var condition: CardCondition?
     var sort: LibrarySort = .dateAdded

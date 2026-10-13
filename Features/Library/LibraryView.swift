@@ -54,7 +54,7 @@ struct LibraryView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Picker("Suchmodus", selection: $filter.searchMode) {
-                        ForEach(SearchMode.allCases) { mode in
+                        ForEach(LibrarySearchMode.allCases) { mode in
                             Text(mode.displayName).tag(mode)
                         }
                     }
