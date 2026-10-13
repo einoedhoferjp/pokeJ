@@ -17,25 +17,7 @@ enum LibrarySort: String, CaseIterable, Identifiable {
 }
 
 /// Reine, testbare Filter-/Sortierlogik für die Bibliothek.
-enum SearchMode: String, CaseIterable, Identifiable {
-    case number, text
 
-    var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .number: return "Nummer"
-        case .text: return "Text"
-        }
-    }
-
-    var placeholder: String {
-        switch self {
-        case .number: return "# /"
-        case .text: return "Name"
-        }
-    }
-}
 
 struct LibraryFilter: Equatable {
     var searchText: String = ""
