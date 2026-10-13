@@ -43,7 +43,7 @@ final class TCGdexProviderTests: XCTestCase {
     func testSearchIncludesLocalIdFilter() async throws {
         let capture = URLCapture()
         let client = StubHTTPClient { url in
-            capture.url = url
+            if url.path.hasSuffix("/en/cards") { capture.url = url }
             return (200, Data(Self.searchJSON.utf8))
         }
         let provider = TCGdexProvider(client: client)
@@ -58,7 +58,7 @@ final class TCGdexProviderTests: XCTestCase {
     func testSearchByIdOnlyDoesNotRequireName() async throws {
         let capture = URLCapture()
         let client = StubHTTPClient { url in
-            capture.url = url
+            if url.path.hasSuffix("/en/cards") { capture.url = url }
             return (200, Data(Self.searchJSON.utf8))
         }
         let provider = TCGdexProvider(client: client)
