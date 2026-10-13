@@ -139,7 +139,8 @@ Nachfreigabe des Nutzers; baut auf Phase 1–3 auf.
 - ✅ Export / Backup (JSON + CSV) aus Bibliothek
 - ✅ Import (Backup wiederherstellen) – additiv, nie zerstörend; erkennt
   identische Exemplare und erhöht die Anzahl; überspringt unbekannte Werte.
-- ⬜ Stapelscan (mehrere Karten nacheinander, mit Pause)
+- ✅ Stapelscan (mehrere Karten nacheinander, mit Pause)
+- ✅ Fiktive Packs & Punkte-Wirtschaft (Kaufen/Öffnen aus Offline-Katalog)
 - ⬜ Verbesserte Bilderkennung / eigenes Core-ML-Modell
 - ⬜ Supabase-Synchronisierung (optional, erst bei Bedarf)
 - ⬜ Weitere Sprachen der App
