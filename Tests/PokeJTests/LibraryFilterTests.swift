@@ -37,8 +37,23 @@ final class LibraryFilterTests: XCTestCase {
     func testSearchByName() throws {
         let (_, items) = try makeItems()
         var filter = LibraryFilter()
+        filter.searchMode = .text
         filter.searchText = "chari"
         XCTAssertEqual(filter.apply(to: items).count, 2)
+    }
+
+    func testSearchByNameInNumberModeDoesNotMatchPartialName() throws {
+        let (_, items) = try makeItems()
+        var filter = LibraryFilter()
+        filter.searchText = "chari"
+        XCTAssertEqual(filter.apply(to: items).count, 0)
+    }
+
+    func testSearchByLocalIdWithSlash() throws {
+        let (_, items) = try makeItems()
+        var filter = LibraryFilter()
+        filter.searchText = "13/6"
+        XCTAssertEqual(filter.apply(to: items).count, 1)
     }
 
     @MainActor

@@ -30,37 +30,56 @@ struct LibraryFilter: Equatable {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 
         var result = items.filter { item in
-            let cardName = item.variant?.card?.name.lowercased() ?? ""
-            let localId = item.variant?.card?.localId.lowercased() ?? ""
-            let idRaw = item.variant?.card?.id.lowercased() ?? ""
-            let matchesText: Bool = trimmed.isEmpty || {
-                switch searchMode {
-                case .number:
-                    return localId == trimmed || localId.replacingOccurrences(of: "/", with: "").contains(trimmed.replacingOccurrences(of: "/", with: "")) || idRaw.contains(trimmed) || cardName == trimmed
-                case .text:
-                    return cardName.contains(trimmed) || localId.contains(trimmed)
-                }
-            }()
-            let matchesLanguage = language == nil || item.variant?.language == language
-            let matchesCondition = condition == nil || item.confirmedCondition == condition
-            return matchesText && matchesLanguage && matchesCondition
+            matches(item: item, query: trimmed)
+                && matchesLanguage(item: item)
+                && matchesCondition(item: item)
         }
 
         switch sort {
         case .dateAdded:
             result.sort { $0.createdAt > $1.createdAt }
         case .name:
-            result.sort {
-                ($0.variant?.card?.name ?? "").localizedCaseInsensitiveCompare($1.variant?.card?.name ?? "") == .orderedAscending
-            }
+            result.sort { cardName(of: $0).localizedCaseInsensitiveCompare(cardName(of: $1)) == .orderedAscending }
         case .set:
-            result.sort {
-                ($0.variant?.card?.setName ?? "").localizedCaseInsensitiveCompare($1.variant?.card?.setName ?? "") == .orderedAscending
-            }
+            result.sort { setName(of: $0).localizedCaseInsensitiveCompare(setName(of: $1)) == .orderedAscending }
         case .price:
             result.sort { ($0.purchasePrice ?? 0) > ($1.purchasePrice ?? 0) }
         }
 
         return result
+    }
+
+    private func cardName(of item: CollectionItem) -> String {
+        item.variant?.card?.name ?? ""
+    }
+
+    private func setName(of item: CollectionItem) -> String {
+        item.variant?.card?.setName ?? ""
+    }
+
+    private func matchesLanguage(item: CollectionItem) -> Bool {
+        language == nil || item.variant?.language == language
+    }
+
+    private func matchesCondition(item: CollectionItem) -> Bool {
+        condition == nil || item.confirmedCondition == condition
+    }
+
+    private func matches(item: CollectionItem, query: String) -> Bool {
+        guard !query.isEmpty else { return true }
+        let cardName = (item.variant?.card?.name ?? "").lowercased()
+        let localId = (item.variant?.card?.localId ?? "").lowercased()
+        let externalId = (item.variant?.card?.externalId ?? "").lowercased()
+        switch searchMode {
+        case .number:
+            let compactQuery = query.replacingOccurrences(of: "/", with: "")
+            let compactLocal = localId.replacingOccurrences(of: "/", with: "")
+            return localId == query
+                || compactLocal.contains(compactQuery)
+                || externalId.contains(query)
+                || cardName == query
+        case .text:
+            return cardName.contains(query) || localId.contains(query)
+        }
     }
 }
