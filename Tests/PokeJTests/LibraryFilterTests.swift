@@ -42,6 +42,7 @@ final class LibraryFilterTests: XCTestCase {
         XCTAssertEqual(filter.apply(to: items).count, 2)
     }
 
+    @MainActor
     func testSearchByNameInNumberModeDoesNotMatchPartialName() throws {
         let (_, items) = try makeItems()
         var filter = LibraryFilter()
@@ -49,6 +50,7 @@ final class LibraryFilterTests: XCTestCase {
         XCTAssertEqual(filter.apply(to: items).count, 0)
     }
 
+    @MainActor
     func testSearchByLocalIdWithSlash() throws {
         let (_, items) = try makeItems()
         var filter = LibraryFilter()
