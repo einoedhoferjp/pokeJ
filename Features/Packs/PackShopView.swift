@@ -18,6 +18,11 @@ struct PackShopView: View {
                 }
             }
             .navigationTitle("Packs")
+            .scrollContentBackground(.hidden)
+            .background(AppTheme.appBackground.ignoresSafeArea())
+            .toolbarBackground(AppTheme.backgroundTop, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(item: $opening) { item in
                 PackOpeningView(opening: item)
             }
@@ -83,8 +88,8 @@ struct PackShopView: View {
                 .frame(width: 44, height: 44)
                 .background(AppTheme.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 10))
             VStack(alignment: .leading, spacing: 2) {
-                Text(pack.name).font(.headline)
-                Text(pack.contentsText).font(.caption).foregroundStyle(.secondary)
+                Text(pack.name).font(.headline.weight(.bold)).foregroundStyle(AppTheme.ink)
+                Text(pack.contentsText).font(.caption).foregroundStyle(AppTheme.textSecondary)
             }
             Spacer()
             Text("\(pack.cost) P")

@@ -58,6 +58,14 @@ enum CardMatcher {
         let b = normalizeName(rhs)
         if a.isEmpty || b.isEmpty { return 0 }
         if a == b { return 1 }
+        let direct = rawSimilarity(a, b)
+        let foldedA = foldConfusions(a)
+        let foldedB = foldConfusions(b)
+        if foldedA == foldedB { return 1 }
+        return max(direct, rawSimilarity(foldedA, foldedB))
+    }
+
+    private static func rawSimilarity(_ a: String, _ b: String) -> Double {
         if a.contains(b) || b.contains(a) {
             let shorter = min(a.count, b.count)
             let longer = max(a.count, b.count)
@@ -66,6 +74,18 @@ enum CardMatcher {
         let distance = levenshtein(a, b)
         let maxLength = max(a.count, b.count)
         return max(0, 1 - Double(distance) / Double(maxLength))
+    }
+
+    /// Gleicht typische OCR-Verwechslungen an (0↔o, 1↔l/i, 5↔s).
+    private static func foldConfusions(_ value: String) -> String {
+        String(value.map { character in
+            switch character {
+            case "0": return "o"
+            case "1": return "l"
+            case "5": return "s"
+            default: return character
+            }
+        })
     }
 
     private static func normalizeName(_ value: String) -> String {
@@ -79,7 +99,8 @@ enum CardMatcher {
     }
 
     private static func normalize(_ value: String) -> String {
-        let stripped = value.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let folded = foldNumberLetters(value.trimmingCharacters(in: .whitespacesAndNewlines))
+        let stripped = folded.uppercased()
         let pattern = #"^([A-Z]*)(0*)(\d+)$"#
         if let regex = try? NSRegularExpression(pattern: pattern),
            let result = regex.firstMatch(in: stripped, options: [], range: NSRange(stripped.startIndex..<stripped.endIndex, in: stripped)),
@@ -90,8 +111,21 @@ enum CardMatcher {
         return stripped
     }
 
+    /// Wandelt in Kartennummern häufige OCR-Verwechslungen in Ziffern um.
+    /// Bewusst nur 0↔O und 1↔I/l, damit Set-Kürzel wie „SV", „PL" oder „SM"
+    /// unverändert bleiben.
+    private static func foldNumberLetters(_ value: String) -> String {
+        String(value.map { character in
+            switch character {
+            case "O", "o": return "0"
+            case "I", "i", "l": return "1"
+            default: return character
+            }
+        })
+    }
+
     private static func digitsOnly(_ value: String) -> String {
-        value.filter { $0.isNumber }
+        foldNumberLetters(value).filter { $0.isNumber }
     }
 
     private static func levenshtein(_ lhs: String, _ rhs: String) -> Int {

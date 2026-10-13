@@ -102,8 +102,13 @@ struct LoginView: View {
             .opacity(canSubmit ? 1 : 0.5)
         }
         .padding(20)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: .black.opacity(0.2), radius: 18, y: 8)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.3), radius: 22, y: 12)
+        .card3D(maxTilt: 6, pressedScale: 1.01)
     }
 
     private func field<Content: View>(icon: String, @ViewBuilder content: () -> Content) -> some View {
@@ -115,7 +120,8 @@ struct LoginView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(AppTheme.elevated, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(AppTheme.surfaceStroke, lineWidth: 1))
     }
 
     private func submit() {

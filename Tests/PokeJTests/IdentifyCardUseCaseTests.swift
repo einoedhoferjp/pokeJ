@@ -41,6 +41,21 @@ final class IdentifyCardUseCaseTests: XCTestCase {
         XCTAssertTrue(outcome.matches.isEmpty)
     }
 
+    func testSearchQueriesPreferNameAndNumber() {
+        let queries = IdentifyCardUseCase.searchQueries(names: ["Furret"], number: "136", language: .en)
+        XCTAssertEqual(queries.first?.text, "Furret")
+        XCTAssertEqual(queries.first?.localId, "136")
+        XCTAssertTrue(queries.contains { $0.text.isEmpty && $0.localId == "136" })
+        XCTAssertTrue(queries.contains { $0.text == "Furret" && $0.localId == nil })
+    }
+
+    func testSearchQueriesWithoutNumberOnlyUsesName() {
+        let queries = IdentifyCardUseCase.searchQueries(names: ["Furret"], number: nil, language: .en)
+        XCTAssertEqual(queries.count, 1)
+        XCTAssertEqual(queries.first?.text, "Furret")
+        XCTAssertNil(queries.first?.localId)
+    }
+
     func testStatusThresholds() {
         let strong = CardMatch(brief: sampleBrief(id: "a"), score: 0.95, reasons: [])
         let weak = CardMatch(brief: sampleBrief(id: "b"), score: 0.55, reasons: [])

@@ -33,9 +33,17 @@ struct CardDTO: Identifiable, Hashable, Sendable {
 
 /// Suchanfrage an die Kartendatenquelle.
 struct CardQuery: Sendable {
-    var text: String = ""
+    var text: String
     var setId: String?
-    var language: Language = .de
+    var localId: String?
+    var language: Language
+
+    init(text: String, setId: String? = nil, localId: String? = nil, language: Language = .en) {
+        self.text = text
+        self.setId = setId
+        self.localId = localId
+        self.language = language
+    }
 }
 
 /// Von der Preisdatenquelle gelieferter Momentaufnahme-Datensatz.

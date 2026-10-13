@@ -10,9 +10,13 @@ struct MockCardDataProvider: CardDataProvider {
 
     func searchCards(_ query: CardQuery) async throws -> [CardBrief] {
         let text = query.text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let localId = query.localId?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return catalog
             .filter { query.setId == nil || $0.setId == query.setId }
             .filter { card in
+                if let localId, !localId.isEmpty, card.localId.lowercased() != localId {
+                    return false
+                }
                 guard !text.isEmpty else { return true }
                 return card.name.lowercased().contains(text) || card.localId.lowercased() == text
             }

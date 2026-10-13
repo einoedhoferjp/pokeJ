@@ -65,4 +65,35 @@ enum CardImagePreprocessor {
     static func cgImage(from image: CIImage, context: CIContext = CIContext()) -> CGImage? {
         context.createCGImage(image, from: image.extent)
     }
+
+    /// Verbessert die OCR-Trefferquote: skaliert kleine Aufnahmen hoch, hebt den
+    /// Kontrast leicht an und schärft Kanten. Bewusst mild gehalten, damit die
+    /// Farbe (relevant für die Texterkennung) erhalten bleibt.
+    static func enhancedForOCR(_ image: CIImage, minimumWidth: CGFloat = 1400) -> CIImage {
+        var result = image
+
+        let width = image.extent.width
+        if width > 0, width < minimumWidth {
+            let scale = minimumWidth / width
+            let filter = CIFilter(name: "CILanczosScaleTransform")
+            filter?.setValue(image, forKey: kCIInputImageKey)
+            filter?.setValue(scale, forKey: kCIInputScaleKey)
+            filter?.setValue(1.0, forKey: kCIInputAspectRatioKey)
+            if let output = filter?.outputImage { result = output }
+        }
+
+        let controls = CIFilter(name: "CIColorControls")
+        controls?.setValue(result, forKey: kCIInputImageKey)
+        controls?.setValue(1.1, forKey: kCIInputContrastKey)
+        controls?.setValue(0.02, forKey: kCIInputBrightnessKey)
+        if let output = controls?.outputImage { result = output }
+
+        let sharpen = CIFilter(name: "CIUnsharpMask")
+        sharpen?.setValue(result, forKey: kCIInputImageKey)
+        sharpen?.setValue(1.5, forKey: kCIInputRadiusKey)
+        sharpen?.setValue(0.5, forKey: kCIInputIntensityKey)
+        if let output = sharpen?.outputImage { result = output }
+
+        return result
+    }
 }

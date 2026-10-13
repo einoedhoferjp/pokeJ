@@ -41,6 +41,19 @@ final class CardTextParserTests: XCTestCase {
         XCTAssertTrue(fields.isEmpty)
     }
 
+    func testParsesGermanKpAbbreviation() {
+        let fields = CardTextParser.parse(lines: ["Glurak", "KP 120", "4/102"])
+        XCTAssertEqual(fields.hp, 120)
+        XCTAssertEqual(fields.nameCandidates.first, "Glurak")
+        XCTAssertEqual(fields.number, "4")
+    }
+
+    func testKeepsNameContainingDigit() {
+        let fields = CardTextParser.parse(lines: ["Porygon2", "HP 90", "12/64"])
+        XCTAssertEqual(fields.nameCandidates.first, "Porygon2")
+        XCTAssertEqual(fields.hp, 90)
+    }
+
     func testNormalizesKindButKeepsOriginalOCRLine() {
         let fields = CardTextParser.parse(lines: ["Nidoran♀", "52/64"])
         XCTAssertEqual(fields.number, "52")

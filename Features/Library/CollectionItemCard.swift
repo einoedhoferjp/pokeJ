@@ -6,29 +6,33 @@ struct CollectionItemCard: View {
     private var card: Card? { item.variant?.card }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             imageView
             Text(card?.name ?? "Unbekannt")
-                .font(.headline)
+                .font(.headline.weight(.bold))
+                .foregroundStyle(AppTheme.ink)
                 .lineLimit(1)
             Text(subtitle)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
                 .lineLimit(1)
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
                 Text(item.confirmedCondition.displayName)
-                    .font(.caption2)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.accentColor.opacity(0.15), in: Capsule())
-                Spacer()
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(AppTheme.accent.opacity(0.18), in: Capsule())
+                    .foregroundStyle(AppTheme.accent)
+                Spacer(minLength: 0)
                 if item.quantity > 1 {
                     Text("×\(item.quantity)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(AppTheme.gold)
                 }
             }
         }
+        .surfaceCard()
+        .card3D()
     }
 
     private var subtitle: String {
@@ -59,17 +63,17 @@ struct CollectionItemCard: View {
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(0.72, contentMode: .fit)
-        .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .background(Color.black.opacity(0.25), in: RoundedRectangle(cornerRadius: AppTheme.cardRadiusSmall))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadiusSmall))
     }
 
     private func placeholder(systemName: String) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.secondary.opacity(0.1))
+            RoundedRectangle(cornerRadius: AppTheme.cardRadiusSmall)
+                .fill(Color.white.opacity(0.06))
             Image(systemName: systemName)
                 .font(.largeTitle)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
         }
     }
 }

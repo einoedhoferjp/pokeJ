@@ -17,10 +17,10 @@ enum CardTextParser {
             fields.printedTotal = match[1]
         }
 
-        if let hp = firstMatch(in: joined, pattern: #"\b(\d{1,3})\s*HP\b"#, caseInsensitive: true)?[0],
+        if let hp = firstMatch(in: joined, pattern: #"\b(\d{1,3})\s*(?:HP|KP)\b"#, caseInsensitive: true)?[0],
            let value = Int(hp) {
             fields.hp = value
-        } else if let hp = firstMatch(in: joined, pattern: #"\bHP\s*(\d{1,3})\b"#, caseInsensitive: true)?[0],
+        } else if let hp = firstMatch(in: joined, pattern: #"\b(?:HP|KP)\s*(\d{1,3})\b"#, caseInsensitive: true)?[0],
                   let value = Int(hp) {
             fields.hp = value
         }
@@ -49,23 +49,33 @@ enum CardTextParser {
     private static func cleanName(_ line: String) -> String {
         var text = line
         text = text.replacingOccurrences(
-            of: #"HP\s*\d{1,3}"#,
+            of: #"(?:HP|KP)\s*\d{1,3}"#,
             with: "",
             options: [.regularExpression, .caseInsensitive]
         )
         text = text.replacingOccurrences(
-            of: #"\b\d{1,3}\s*HP\b"#,
+            of: #"\b\d{1,3}\s*(?:HP|KP)\b"#,
+            with: "",
+            options: [.regularExpression, .caseInsensitive]
+        )
+        text = text.replacingOccurrences(
+            of: #"\b(?:LV|Lv|Nv)\.?\s*\d{1,3}\b"#,
             with: "",
             options: [.regularExpression, .caseInsensitive]
         )
         text = text.replacingOccurrences(of: "★", with: "")
+        text = text.replacingOccurrences(of: "◇", with: "")
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static let noiseKeywords: Set<String> = [
         "basic", "stage 1", "stage 2", "stage1", "stage2",
+        "phase 1", "phase 2", "basis",
         "trainer", "energy", "item", "supporter", "stadium",
-        "ability", "pokemon", "pokémon", "ex", "gx", "v", "vmax", "vstar"
+        "ability", "pokemon", "pokémon", "ex", "gx", "v", "vmax", "vstar",
+        "fähigkeit", "attacke", "attacken", "schwäche", "resistenz",
+        "rückzug", "flucht", "regel", "tausch", "unterstützer", "stadion",
+        "energie", "entwickelt sich", "entwickelt sich aus"
     ]
 
     private static func isNoise(_ line: String, number: String?) -> Bool {
@@ -76,8 +86,13 @@ enum CardTextParser {
             if normalizeNumber(line) == normalizeNumber(number) { return true }
         }
 
-        let letterCount = line.unicodeScalars.filter { CharacterSet.letters.contains($0) }.count
+        let scalars = line.unicodeScalars
+        let letterCount = scalars.filter { CharacterSet.letters.contains($0) }.count
+        let digitCount = scalars.filter { CharacterSet.decimalDigits.contains($0) }.count
         if letterCount == 0 { return true }
+
+        // Überwiegend numerische Zeilen sind keine Kartennamen.
+        if digitCount > 0 && digitCount >= letterCount { return true }
 
         // Zeilen, die nur eine Kartennummer enthalten (z. B. "136" oder "TG03").
         if line.range(of: #"^[A-Za-z]{0,4}\d{1,4}$"#, options: .regularExpression) != nil {

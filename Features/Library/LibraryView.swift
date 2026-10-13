@@ -4,6 +4,7 @@ import SwiftData
 struct LibraryView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.priceProvider) private var priceProvider
+    @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var points: PointsStore
     @Query(sort: \CollectionItem.createdAt, order: .reverse) private var items: [CollectionItem]
@@ -126,6 +127,14 @@ struct LibraryView: View {
             .onAppear {
                 SeedLoader.seedIfNeeded(in: context)
             }
+            .task(id: items.count) { await autoRefreshIfDue() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { Task { await autoRefreshIfDue() } }
+            }
+            .toolbarBackground(AppTheme.backgroundTop, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .background(AppTheme.appBackground.ignoresSafeArea())
         }
     }
 
@@ -134,7 +143,7 @@ struct LibraryView: View {
             valueSummary
             filterBar
             ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: AppTheme.gridSpacing)], spacing: AppTheme.gridSpacing) {
                     ForEach(visibleItems) { item in
                         NavigationLink {
                             CardDetailView(item: item)
@@ -153,8 +162,10 @@ struct LibraryView: View {
                     }
                 }
                 .padding()
+                .animation(AppTheme.Motion.smooth, value: visibleItems.count)
             }
         }
+        .background(AppTheme.appBackground.ignoresSafeArea())
     }
 
     private var filterBar: some View {
@@ -210,6 +221,19 @@ struct LibraryView: View {
         items.reduce(0) { $0 + $1.quantity }
     }
 
+    @ViewBuilder
+    private var lastRefreshNote: some View {
+        if let last = PriceRefreshLog().lastFullRefresh {
+            Label("Preise aktualisiert \(PriceFormatting.relative(last, now: Date()))", systemImage: "clock.arrow.circlepath")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        } else {
+            Label("Preise noch nicht automatisch aktualisiert", systemImage: "clock.badge.questionmark")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+    }
+
     private var valueSummary: some View {
         let value = collectionValue
         return VStack(alignment: .leading, spacing: 4) {
@@ -245,6 +269,7 @@ struct LibraryView: View {
             }
             .font(.caption2)
             .foregroundStyle(.secondary)
+            lastRefreshNote
             if let refreshNote {
                 Text(refreshNote)
                     .font(.caption2)
@@ -289,6 +314,13 @@ struct LibraryView: View {
     }
 
     @MainActor
+    private func autoRefreshIfDue() async {
+        guard !items.isEmpty, !isRefreshing else { return }
+        guard PriceRefreshLog().isRefreshDue() else { return }
+        await refreshPrices()
+    }
+
+    @MainActor
     private func refreshPrices() async {
         guard !isRefreshing else { return }
         isRefreshing = true
@@ -296,6 +328,10 @@ struct LibraryView: View {
         let service = PriceService(provider: priceProvider, context: context)
         let summary = await service.refresh(items: items)
         isRefreshing = false
+
+        if summary.failedTargets == 0 {
+            PriceRefreshLog().markRefreshed()
+        }
 
         var parts: [String] = []
         if summary.insertedSnapshots > 0 { parts.append("\(summary.insertedSnapshots) neue Preisstände") }

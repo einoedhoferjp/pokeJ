@@ -363,7 +363,8 @@ state = .result
     private func preprocess(_ cgImage: CGImage) -> CGImage {
         let ciImage = CIImage(cgImage: cgImage)
         let corrected = CardImagePreprocessor.rectify(ciImage, orientation: .up)
-        return CardImagePreprocessor.cgImage(from: corrected) ?? cgImage
+        let enhanced = CardImagePreprocessor.enhancedForOCR(corrected)
+        return CardImagePreprocessor.cgImage(from: enhanced) ?? cgImage
     }
 
     @MainActor

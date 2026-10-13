@@ -25,10 +25,13 @@ struct TCGdexProvider: CardDataProvider {
 
     func searchCards(_ query: CardQuery) async throws -> [CardBrief] {
         let text = query.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty || query.setId != nil else { return [] }
+        guard !text.isEmpty || query.setId != nil || query.localId != nil else { return [] }
 
         var items: [URLQueryItem] = []
         if !text.isEmpty { items.append(URLQueryItem(name: "name", value: text)) }
+        if let localId = query.localId?.trimmingCharacters(in: .whitespacesAndNewlines), !localId.isEmpty {
+            items.append(URLQueryItem(name: "localId", value: localId))
+        }
 
         guard let url = Self.makeURL(base: baseURL, language: query.language, path: "cards", queryItems: items) else {
             throw CardDataError.network

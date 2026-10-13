@@ -48,7 +48,14 @@ final class CardMatcherTests: XCTestCase {
         let fields = OCRFields(nameCandidates: ["Charizard ex"], number: "6")
         let (score, reasons) = CardMatcher.score(fields: fields, brief: brief)
         XCTAssertTrue(reasons.contains("Kartennummer stimmt überein"))
-        XCTAssertGreaterThan(score, 0.8)
+        XCTAssertEqual(score, 1.0, accuracy: 0.0001)
+    }
+
+    func testOcrConfusedNumberStillMatches() {
+        let fields = OCRFields(nameCandidates: ["Furret"], number: "l36")
+        let (score, reasons) = CardMatcher.score(fields: fields, brief: furret)
+        XCTAssertTrue(reasons.contains("Kartennummer stimmt überein"))
+        XCTAssertEqual(score, 1.0, accuracy: 0.0001)
     }
 
     func testMatchSortsByNameAndNumberMatch() {

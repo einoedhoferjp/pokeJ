@@ -62,11 +62,14 @@ struct SetBrowserView: View {
                     .fixedSize()
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Text("\(allSets.count) Sets �� \(PokemonCatalog.shared.cardCount) Karten")
+                    Text("\(allSets.count) Sets · \(PokemonCatalog.shared.cardCount) Karten")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
+            .toolbarBackground(AppTheme.backgroundTop, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 }
@@ -97,19 +100,19 @@ private struct SetSummaryRow: View {
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text(set.name)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(AppTheme.ink)
                 Text("\(set.cards.count) Karten · \(set.id)")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.textSecondary)
             }
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.footnote)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(AppTheme.textSecondary)
         }
-        .padding(12)
-        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+        .surfaceCard(padding: 12)
+        .card3D(maxTilt: 8)
     }
 }
 
@@ -142,7 +145,7 @@ struct SetDetailView: View {
 
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: columns, spacing: 10) {
+            LazyVGrid(columns: columns, spacing: AppTheme.gridSpacing) {
                 ForEach(visibleCards) { card in
                     Button {
                         selected = card
@@ -154,6 +157,7 @@ struct SetDetailView: View {
             }
             .padding()
         }
+        .background(AppTheme.appBackground.ignoresSafeArea())
         .navigationTitle(set.name)
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: searchMode.placeholder)
@@ -168,6 +172,9 @@ struct SetDetailView: View {
                 .fixedSize()
             }
         }
+        .toolbarBackground(AppTheme.backgroundTop, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .sheet(item: $selected) { card in
             CatalogCardDetailView(card: card, set: set)
         }
@@ -193,18 +200,20 @@ private struct CatalogCardCell: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             Text(card.name)
-                .font(.caption2)
+                .font(.caption2.weight(.semibold))
                 .lineLimit(1)
-                .foregroundStyle(.primary)
+                .foregroundStyle(AppTheme.ink)
             Text("#\(card.localId)")
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
         }
+        .surfaceCard(radius: AppTheme.cardRadiusSmall, padding: 6)
+        .card3D(maxTilt: 10)
     }
 
     private var placeholder: some View {
         RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .fill(AppTheme.surface)
+            .fill(Color.white.opacity(0.06))
             .aspectRatio(0.72, contentMode: .fit)
             .overlay {
                 Image(systemName: "photo")

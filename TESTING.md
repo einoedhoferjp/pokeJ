@@ -105,6 +105,13 @@ Checkliste für den Durchlauf auf dem Gerät:
 - [ ] Belohnungs-Snackbar „+50 Punkte" erscheint nach dem Bestätigen.
 - [ ] Preis im Katalogdetail laden **und** aktualisieren (Zeitstempel ändert sich).
 - [ ] Sammlung bleibt nach App-Neustart erhalten.
+- [ ] **Preis-Auto-Refresh:** Im Sammlungs-Kopf erscheint „Preise aktualisiert …";
+      bei leerem Log (frisch installiert) lädt die App die Preise automatisch,
+      und danach erst wieder nach 24 h (`PriceRefreshPolicy`).
+- [ ] **Scan-Qualität:** Karte leicht unscharf/verwinkelt scannen → Top-Kandidat
+      stimmt (Suche nutzt jetzt Name **und** Kartennummer sowie KP/HP).
+- [ ] **Design:** dunkles Design mit kräftiger Typografie aktiv; Karten kippen
+      beim Ziehen räumlich (3D) und heben sich an.
 
 > Diese Liste ist eine **Vorbereitung**; die Häkchen werden erst nach tatsächlicher
 > Durchführung auf dem Gerät gesetzt (keine erfundenen Ergebnisse).

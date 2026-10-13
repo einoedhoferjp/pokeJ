@@ -20,9 +20,12 @@ struct IdentifyCardUseCase {
         var candidates: [CardBrief] = []
         var seen = Set<String>()
 
-        for query in searchQueries(for: fields) {
-            for lang in Self.searchLanguages(preferred: language) {
-                let results = (try? await provider.searchCards(CardQuery(text: query, language: lang))) ?? []
+        let names = fields.nameCandidates.prefix(2).filter { !$0.isEmpty }
+        let number = fields.number?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        for lang in Self.searchLanguages(preferred: language) {
+            for query in Self.searchQueries(names: Array(names), number: number, language: lang) {
+                let results = (try? await provider.searchCards(query)) ?? []
                 for brief in results where seen.insert(brief.id).inserted {
                     candidates.append(brief)
                 }
@@ -31,6 +34,24 @@ struct IdentifyCardUseCase {
 
         let matches = Array(CardMatcher.match(fields: fields, candidates: candidates).prefix(Self.maxMatches))
         return IdentifyOutcome(status: Self.status(for: matches), matches: matches)
+    }
+
+    /// Baut die Suchanfragen in abnehmender Präzision:
+    /// 1. Name **und** Nummer (genaueste Suche),
+    /// 2. nur Nummer (findet Karten mit unklarem Namen),
+    /// 3. nur Name (Fallback).
+    static func searchQueries(names: [String], number: String?, language: Language) -> [CardQuery] {
+        var queries: [CardQuery] = []
+        if let number, !number.isEmpty {
+            for name in names {
+                queries.append(CardQuery(text: name, localId: number, language: language))
+            }
+            queries.append(CardQuery(text: "", localId: number, language: language))
+        }
+        for name in names {
+            queries.append(CardQuery(text: name, language: language))
+        }
+        return queries
     }
 
     /// Sucht bevorzugt in der gewählten Sprache und zusätzlich in den
@@ -43,17 +64,6 @@ struct IdentifyCardUseCase {
             languages.append(language)
         }
         return languages
-    }
-
-    private func searchQueries(for fields: OCRFields) -> [String] {
-        var queries: [String] = []
-        for name in fields.nameCandidates.prefix(2) where !name.isEmpty {
-            queries.append(name)
-        }
-        if let number = fields.number, !number.isEmpty {
-            queries.append(number)
-        }
-        return queries
     }
 
     static func status(for matches: [CardMatch]) -> ScanStatus {

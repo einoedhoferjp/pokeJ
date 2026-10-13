@@ -1,6 +1,10 @@
 import XCTest
 @testable import PokeJ
 
+private final class URLCapture: @unchecked Sendable {
+    var url: URL?
+}
+
 final class TCGdexProviderTests: XCTestCase {
     private static let searchJSON = """
     [
@@ -34,6 +38,36 @@ final class TCGdexProviderTests: XCTestCase {
             if url.path.contains("/en/cards/swsh3-136") { return (200, Data(Self.cardJSON.utf8)) }
             return (404, Data())
         }
+    }
+
+    func testSearchIncludesLocalIdFilter() async throws {
+        let capture = URLCapture()
+        let client = StubHTTPClient { url in
+            capture.url = url
+            return (200, Data(Self.searchJSON.utf8))
+        }
+        let provider = TCGdexProvider(client: client)
+        _ = try await provider.searchCards(CardQuery(text: "furret", localId: "136", language: .en))
+
+        let url = try XCTUnwrap(capture.url)
+        let query = try XCTUnwrap(url.query)
+        XCTAssertTrue(query.contains("name=furret"))
+        XCTAssertTrue(query.contains("localId=136"))
+    }
+
+    func testSearchByIdOnlyDoesNotRequireName() async throws {
+        let capture = URLCapture()
+        let client = StubHTTPClient { url in
+            capture.url = url
+            return (200, Data(Self.searchJSON.utf8))
+        }
+        let provider = TCGdexProvider(client: client)
+        _ = try await provider.searchCards(CardQuery(text: "", localId: "136", language: .en))
+
+        let url = try XCTUnwrap(capture.url)
+        let query = try XCTUnwrap(url.query)
+        XCTAssertFalse(query.contains("name="))
+        XCTAssertTrue(query.contains("localId=136"))
     }
 
     func testSearchMapsBriefWithSetName() async throws {

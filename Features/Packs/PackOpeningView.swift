@@ -47,8 +47,12 @@ struct PackOpeningView: View {
                 }
                 .padding()
             }
+            .background(AppTheme.appBackground.ignoresSafeArea())
             .navigationTitle(opening.pack.name)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(AppTheme.backgroundTop, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Schließen") {
@@ -75,11 +79,11 @@ struct PackOpeningView: View {
                 .font(.system(size: 36))
                 .foregroundStyle(AppTheme.accent)
             Text(opening.pack.contentsText)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(AppTheme.ink)
             Text("\(opening.pack.cost) Punkte ausgegeben")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
         }
     }
 
@@ -96,7 +100,7 @@ struct PackOpeningView: View {
     }
 
     private var cardsGrid: some View {
-        LazyVGrid(columns: columns, spacing: 10) {
+        LazyVGrid(columns: columns, spacing: AppTheme.gridSpacing) {
             ForEach(Array(opening.pulls.enumerated()), id: \.element.id) { index, pull in
                 if isRevealed {
                     PullCardView(pull: pull)
@@ -193,7 +197,7 @@ private struct PullCardView: View {
         VStack(spacing: 6) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(.secondarySystemBackground))
+                    .fill(Color.white.opacity(0.06))
                 AsyncImage(url: pull.card.thumbnailURL) { phase in
                     if case .success(let image) = phase {
                         image.resizable().scaledToFit()
@@ -204,23 +208,25 @@ private struct PullCardView: View {
             .overlay(alignment: .topTrailing) {
                 if pull.isHolo {
                     Text("Holo")
-                        .font(.caption2)
-                        .fontWeight(.semibold)
+                        .font(.caption2.weight(.bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.orange, in: Capsule())
+                        .background(AppTheme.goldGradient, in: Capsule())
                         .padding(4)
                 }
             }
 
             Text(pull.card.name)
-                .font(.caption)
+                .font(.caption.weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+                .foregroundStyle(AppTheme.ink)
             Text("#\(pull.card.localId) · \(pull.set.id)")
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
         }
+        .surfaceCard(radius: AppTheme.cardRadiusSmall, padding: 6)
+        .card3D(maxTilt: 14, pressedScale: 1.05)
     }
 }
