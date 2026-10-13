@@ -50,8 +50,17 @@ struct LibraryView: View {
                 }
             }
             .navigationTitle("Sammlung")
-            .searchable(text: $filter.searchText, prompt: "Name oder Kartennummer")
+            .searchable(text: $filter.searchText, prompt: filter.searchMode.placeholder)
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Picker("Suchmodus", selection: $filter.searchMode) {
+                        ForEach(SearchMode.allCases) { mode in
+                            Text(mode.displayName).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .fixedSize()
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
                         if let user = auth.currentUser {

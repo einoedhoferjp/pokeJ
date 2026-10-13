@@ -3,13 +3,23 @@ import SwiftUI
 /// Browser für den gebündelten Gesamtkatalog (alle Sets/Karten der Quelle).
 struct SetBrowserView: View {
     @State private var searchText = ""
+    @State private var searchMode: SearchMode = .number
 
     private let allSets = PokemonCatalog.sets
 
     private var visibleSets: [CatalogSet] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !trimmed.isEmpty else { return allSets }
-        return allSets.filter { $0.name.lowercased().contains(trimmed) || $0.id.lowercased().contains(trimmed) }
+        return allSets.filter {
+            let name = $0.name.lowercased()
+            let id = $0.id.lowercased()
+            switch searchMode {
+            case .number:
+                return id.contains(trimmed) || name == trimmed
+            case .text:
+                return name.contains(trimmed) || id.contains(trimmed)
+            }
+        }
     }
 
     var body: some View {
@@ -40,13 +50,23 @@ struct SetBrowserView: View {
                 }
             }
             .navigationTitle("Alle Sets")
-            .searchable(text: $searchText, prompt: "Set suchen")
+            .searchable(text: $searchText, prompt: searchMode.placeholder)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Text("\(allSets.count) Sets · \(PokemonCatalog.shared.cardCount) Karten")
+                    Picker("Suchmodus", selection: $searchMode) {
+                        ForEach(SearchMode.allCases) { mode in
+                            Text(mode.displayName).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .fixedSize()
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Text("\(allSets.count) Sets �� \(PokemonCatalog.shared.cardCount) Karten")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
+            }
             }
         }
     }
@@ -98,6 +118,7 @@ private struct SetSummaryRow: View {
 struct SetDetailView: View {
     let set: CatalogSet
     @State private var searchText = ""
+    @State private var searchMode: SearchMode = .number
     @State private var selected: CatalogCard?
 
     private let columns = [GridItem(.adaptive(minimum: 108), spacing: 10)]
@@ -105,7 +126,19 @@ struct SetDetailView: View {
     private var visibleCards: [CatalogCard] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !trimmed.isEmpty else { return set.cards }
-        return set.cards.filter { $0.name.lowercased().contains(trimmed) || $0.localId.lowercased() == trimmed }
+        return set.cards.filter {
+            let name = $0.name.lowercased()
+            let localId = $0.localId.lowercased()
+            let id = $0.id.lowercased()
+            switch searchMode {
+            case .number:
+                let t = trimmed.replacingOccurrences(of: "/", with: "")
+                let lid = localId.replacingOccurrences(of: "/", with: "")
+                return lid.contains(t) || localId == trimmed || id.contains(trimmed)
+            case .text:
+                return name.contains(trimmed) || localId.contains(trimmed) || id.contains(trimmed)
+            }
+        }
     }
 
     var body: some View {
@@ -124,7 +157,18 @@ struct SetDetailView: View {
         }
         .navigationTitle(set.name)
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: "Karte suchen")
+        .searchable(text: $searchText, prompt: searchMode.placeholder)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Picker("Suchmodus", selection: $searchMode) {
+                    ForEach(SearchMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .fixedSize()
+            }
+        }
         .sheet(item: $selected) { card in
             CatalogCardDetailView(card: card, set: set)
         }

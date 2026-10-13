@@ -17,8 +17,29 @@ enum LibrarySort: String, CaseIterable, Identifiable {
 }
 
 /// Reine, testbare Filter-/Sortierlogik für die Bibliothek.
+enum SearchMode: String, CaseIterable, Identifiable {
+    case number, text
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .number: return "Nummer"
+        case .text: return "Text"
+        }
+    }
+
+    var placeholder: String {
+        switch self {
+        case .number: return "# /"
+        case .text: return "Name"
+        }
+    }
+}
+
 struct LibraryFilter: Equatable {
     var searchText: String = ""
+    var searchMode: SearchMode = .number
     var language: Language?
     var condition: CardCondition?
     var sort: LibrarySort = .dateAdded
@@ -29,7 +50,15 @@ struct LibraryFilter: Equatable {
         var result = items.filter { item in
             let cardName = item.variant?.card?.name.lowercased() ?? ""
             let localId = item.variant?.card?.localId.lowercased() ?? ""
-            let matchesText = trimmed.isEmpty || cardName.contains(trimmed) || localId == trimmed
+            let idRaw = item.variant?.card?.id.lowercased() ?? ""
+            let matchesText: Bool = trimmed.isEmpty || {
+                switch searchMode {
+                case .number:
+                    return localId == trimmed || localId.replacingOccurrences(of: "/", with: "").contains(trimmed.replacingOccurrences(of: "/", with: "")) || idRaw.contains(trimmed) || cardName == trimmed
+                case .text:
+                    return cardName.contains(trimmed) || localId.contains(trimmed)
+                }
+            }()
             let matchesLanguage = language == nil || item.variant?.language == language
             let matchesCondition = condition == nil || item.confirmedCondition == condition
             return matchesText && matchesLanguage && matchesCondition
