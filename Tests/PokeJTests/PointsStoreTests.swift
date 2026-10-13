@@ -22,9 +22,13 @@ final class PointsStoreTests: XCTestCase {
         let defaults = UserDefaults(suiteName: "test.purchase")!
         defaults.removePersistentDomain(forName: "test.purchase")
         let store = PointsStore(defaults: defaults)
+        while !store.canAfford(PackDefinition.standard) {
+            store.awardScanReward()
+        }
+        let before = store.balance
         XCTAssertTrue(store.canAfford(PackDefinition.standard))
         XCTAssertTrue(store.purchase(PackDefinition.standard))
-        XCTAssertEqual(store.balance, PointsStore.startingBalance - PackDefinition.standard.cost)
+        XCTAssertEqual(store.balance, before - PackDefinition.standard.cost)
     }
 
     func testCannotPurchaseIfTooExpensive() {
