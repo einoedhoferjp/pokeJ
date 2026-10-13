@@ -128,6 +128,7 @@ struct ScannerView: View {
             }
         }
         .sensoryFeedback(.success, trigger: outcome?.status ?? .noMatch)
+        .rewardBanner(points: points)
     }
 
     // MARK: - Zustandsansichten

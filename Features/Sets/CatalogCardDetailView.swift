@@ -12,6 +12,7 @@ struct CatalogCardDetailView: View {
     @State private var points: [PricePoint] = []
     @State private var isLoadingPrice = false
     @State private var priceError: String?
+    @State private var priceNote: String?
     @State private var showAdd = false
 
     private var brief: CardBrief {
@@ -70,6 +71,18 @@ struct CatalogCardDetailView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Schließen") { dismiss() }
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        Task { await loadPrices() }
+                    } label: {
+                        if isLoadingPrice {
+                            ProgressView()
+                        } else {
+                            Label("Preise aktualisieren", systemImage: "arrow.clockwise")
+                        }
+                    }
+                    .disabled(isLoadingPrice)
+                }
             }
             .sheet(isPresented: $showAdd) {
                 AddEditCardView(mode: .add, preselected: brief, language: .de)
@@ -83,6 +96,11 @@ struct CatalogCardDetailView: View {
             VStack(spacing: 10) {
                 if let priceError {
                     Text(priceError)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                if let priceNote {
+                    Text(priceNote)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -100,7 +118,30 @@ struct CatalogCardDetailView: View {
             }
             .frame(maxWidth: .infinity)
         } else {
-            PriceSectionView(printing: .normal, points: points)
+            VStack(spacing: 8) {
+                if let priceError {
+                    Text(priceError)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                PriceSectionView(printing: .normal, points: points)
+                if let priceNote {
+                    Text(priceNote)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Button {
+                    Task { await loadPrices() }
+                } label: {
+                    if isLoadingPrice {
+                        ProgressView()
+                    } else {
+                        Label("Preise aktualisieren", systemImage: "arrow.clockwise")
+                    }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isLoadingPrice)
+            }
         }
     }
 
@@ -117,23 +158,27 @@ struct CatalogCardDetailView: View {
 
     @MainActor
     private func loadPrices() async {
+        guard !isLoadingPrice else { return }
         isLoadingPrice = true
         priceError = nil
+        priceNote = nil
         do {
             let dtos = try await priceProvider.prices(externalCardId: card.id, printing: .normal, language: .de)
             if dtos.isEmpty {
                 priceError = "Für diese Karte wurde kein Preis gefunden."
-            }
-            points = dtos.map {
-                PricePoint(
-                    productId: $0.productId ?? card.id,
-                    metric: $0.metric,
-                    amount: $0.amount,
-                    currency: $0.currency,
-                    fetchedAt: $0.fetchedAt,
-                    source: $0.source,
-                    matchQuality: $0.matchQuality
-                )
+            } else {
+                points = dtos.map {
+                    PricePoint(
+                        productId: $0.productId ?? card.id,
+                        metric: $0.metric,
+                        amount: $0.amount,
+                        currency: $0.currency,
+                        fetchedAt: $0.fetchedAt,
+                        source: $0.source,
+                        matchQuality: $0.matchQuality
+                    )
+                }
+                priceNote = "Preise aktualisiert."
             }
         } catch {
             priceError = "Preis konnte nicht geladen werden (offline?)."

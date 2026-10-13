@@ -115,8 +115,15 @@ Nachfreigabe des Nutzers; baut auf Phase 1–3 auf.
 - ✅ Scanner-QoL: 3-s-Nachlauf, Statushilfen, deutlich sichtbarer Erfolg.
 - ✅ Speichern-Härtung: Fehlerdialog statt stillem `try?`; optionales
   Zusammenfassen identischer Karten; Gesamtzahl im Bibliothekskopf.
-- ✅ CI-Verifikation (Build + 83 Unit-Tests grün, 0 Fehlschläge).
-- ⬜ Gerätetest auf dem iPad (Kamera, Vision-OCR, Live-Preise).
+- ✅ Preise im Katalogdetail laden **und aktualisieren** (Toolbar + Button,
+  Zeitstempel/Notiz).
+- ✅ Belohnungs-Snackbar „+50 Punkte" nach dem Bestätigen eines Scans
+  (`RewardBanner`, eingebunden in `RootView` und `ScannerView`).
+- ✅ Gerätetest-Ansicht `DeviceDiagnosticsView` (Kamera/OCR-Verfügbarkeit,
+  Offline-Katalog-Statistik, Live-Anbindung Katalog + Preise).
+- ✅ CI-Verifikation (Build + 92 Unit-Tests grün, 0 Fehlschläge).
+- ⬜ Gerätetest auf dem iPad (Kamera, Vision-OCR, Live-Preise) – Vorbereitung
+  siehe `TESTING.md` §6.
 
 > **Status:** Implementierung committet und im CI **grün**; der Gerätetest auf
 > dem iPad steht noch aus. Zutreffende Probe-Zugangsdaten siehe `SETUP.md`.

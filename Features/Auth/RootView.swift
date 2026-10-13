@@ -24,6 +24,7 @@ struct RootView: View {
         }
         .environmentObject(auth)
         .environmentObject(points)
+        .rewardBanner(points: points)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: auth.isAuthenticated)
     }
 }

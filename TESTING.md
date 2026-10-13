@@ -81,3 +81,31 @@ Kartennummer und (falls zutreffend) der erwartete Preis-Datensatz.
 - Kamera-, Vision- und Netzwerkpfade werden in CI **nicht** ausgeführt
   (Simulator ohne Kamera, kein Live-Zugriff) – sie sind über Protokolle und
   Stubs abgedeckt bzw. erfordern einen Test auf dem echten iPad.
+
+## 6. Gerätetest auf dem iPad (vorbereitet)
+
+Die App bringt unter **Konto-Menü → Diagnose → Gerätetest** eine Diagnoseansicht
+mit, die die geräteabhängigen Funktionen explizit prüft und nichts erfindet:
+
+- **Kamera-Scan:** meldet, ob `VNDocumentCameraViewController` unterstützt wird
+  (auf dem iPad „verfügbar", im Simulator „nicht verfügbar").
+- **OCR-Sprachen:** listet die von Vision unterstützten Sprachen (Anzahl).
+- **Offline-Katalog:** Anzahl Sets/Karten sowie Quelle und Erzeugungsdatum.
+- **Live-Anbindung:** zwei Prüfknöpfe für Katalogsuche und Preise, die eine
+  echte TCGdex-Anfrage auslösen und Erfolg (mit Anzahl/Treffer) oder die
+  konkrete Fehlermeldung anzeigen.
+
+Checkliste für den Durchlauf auf dem Gerät:
+
+- [ ] App installiert und gestartet (Sideloading, 7-Tage-Profil).
+- [ ] Anmeldung mit Probenkonto funktioniert; Sitzung bleibt nach Neustart.
+- [ ] `Gerätetest` zeigt „Kamera-Scan: verfügbar" und eine OCR-Sprachliste > 0.
+- [ ] „Katalogsuche" und „Preise" unter Live-Anbindung laufen erfolgreich.
+- [ ] Karte scannen → Kandidaten → bestätigen → speichern (siehe Testkarten-Set).
+- [ ] Belohnungs-Snackbar „+50 Punkte" erscheint nach dem Bestätigen.
+- [ ] Preis im Katalogdetail laden **und** aktualisieren (Zeitstempel ändert sich).
+- [ ] Sammlung bleibt nach App-Neustart erhalten.
+
+> Diese Liste ist eine **Vorbereitung**; die Häkchen werden erst nach tatsächlicher
+> Durchführung auf dem Gerät gesetzt (keine erfundenen Ergebnisse).
+

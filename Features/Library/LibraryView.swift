@@ -80,6 +80,13 @@ struct LibraryView: View {
                                 Label("Export / Backup", systemImage: "square.and.arrow.up.on.square")
                             }
                         }
+                        Section("Diagnose") {
+                            NavigationLink {
+                                DeviceDiagnosticsView()
+                            } label: {
+                                Label("Gerätetest", systemImage: "stethoscope")
+                            }
+                        }
                     } label: {
                         Label("Konto", systemImage: "person.crop.circle")
                     }

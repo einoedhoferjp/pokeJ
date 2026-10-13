@@ -18,12 +18,23 @@ struct PackOpeningEvent: Identifiable, Codable, Sendable {
 /// Schema-/Migrationsfragen entstehen.
 @MainActor
 final class PointsStore: ObservableObject {
+    /// Eine soeben erhaltene Punkte-Belohnung, die als Snackbar angezeigt wird.
+    struct RewardEvent: Identifiable, Equatable, Sendable {
+        let id: UUID
+        let amount: Int
+        let reason: String
+    }
+
     static let startingBalance = 100
     static let scanRewardPerCard = 50
     static let dailyBonus = 50
+    /// Anzeigedauer der Belohnungs-Snackbar in Sekundenbruchteilen.
+    static let rewardDurationNanoseconds: UInt64 = 2_500_000_000
 
     @Published private(set) var balance: Int
     @Published private(set) var recentOpenings: [PackOpeningEvent]
+    /// Zuletzt gewährte Belohnung; `nil`, wenn keine Snackbar angezeigt wird.
+    @Published private(set) var reward: RewardEvent?
 
     private let defaults: UserDefaults
 
@@ -60,12 +71,30 @@ final class PointsStore: ObservableObject {
         lastDailyBonus = .now
         balance += Self.dailyBonus
         persistBalance()
+        showReward(amount: Self.dailyBonus, reason: "Tagesbonus")
         return true
     }
 
     func awardScanReward() {
         balance += Self.scanRewardPerCard
         persistBalance()
+        showReward(amount: Self.scanRewardPerCard, reason: "Karte gescannt")
+    }
+
+    /// Blendet das Belohnungs-Banner sofort aus (z. B. beim Verlassen der Ansicht).
+    func clearReward() {
+        reward = nil
+    }
+
+    private func showReward(amount: Int, reason: String) {
+        let event = RewardEvent(id: UUID(), amount: amount, reason: reason)
+        reward = event
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: Self.rewardDurationNanoseconds)
+            if reward?.id == event.id {
+                reward = nil
+            }
+        }
     }
 
     func canAfford(_ pack: PackDefinition) -> Bool {
