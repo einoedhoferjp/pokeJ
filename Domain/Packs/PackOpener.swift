@@ -33,12 +33,11 @@ enum PackOpener {
         guard !pool.isEmpty else { return [] }
 
         let count = Swift.min(pack.cardCount, pool.count)
-        var indices = Set<Int>()
-        while indices.count < count {
-            indices.insert(Int.random(in: 0..<pool.count, using: &rng))
-        }
+        var indices = Array(pool.indices)
+        indices.shuffle(using: &rng)
+        let chosen = indices.prefix(count)
 
-        var pulls = indices.map { PackPull(card: pool[$0].card, set: pool[$0].set, printing: .normal) }
+        var pulls = chosen.map { PackPull(card: pool[$0].card, set: pool[$0].set, printing: .normal) }
 
         if pack.holoGuarantee > 0 {
             var order = Array(pulls.indices)
