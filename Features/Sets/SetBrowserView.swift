@@ -67,7 +67,6 @@ struct SetBrowserView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            }
         }
     }
 }
