@@ -5,6 +5,7 @@ struct LibraryView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.priceProvider) private var priceProvider
     @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var points: PointsStore
     @Query(sort: \CollectionItem.createdAt, order: .reverse) private var items: [CollectionItem]
     @Query(sort: \PriceSnapshot.fetchedAt, order: .reverse) private var allSnapshots: [PriceSnapshot]
 
@@ -61,18 +62,27 @@ struct LibraryView: View {
                         Button(role: .destructive) {
                             auth.logout()
                         } label: {
-                        Label("Abmelden", systemImage: "rectangle.portrait.and.arrow.right")
-                    }
-                    Section("Daten") {
-                        NavigationLink {
-                            DataExportView()
-                        } label: {
-                            Label("Export / Backup", systemImage: "square.and.arrow.up.on.square")
+                            Label("Abmelden", systemImage: "rectangle.portrait.and.arrow.right")
                         }
+                        Section("Daten") {
+                            NavigationLink {
+                                DataExportView()
+                            } label: {
+                                Label("Export / Backup", systemImage: "square.and.arrow.up.on.square")
+                            }
+                        }
+                    } label: {
+                        Label("Konto", systemImage: "person.crop.circle")
                     }
-                } label: {
-                    Label("Konto", systemImage: "person.crop.circle")
                 }
+                ToolbarItem(placement: .topBarLeading) {
+                    Label("\(points.balance) P", systemImage: "point.3.connected.trianglepath.dotted")
+                        .labelStyle(.titleAndIcon)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(Color.secondary.opacity(0.12), in: Capsule())
+                        .font(.caption)
+                        .accessibilityLabel("Punktestand \(points.balance)")
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
