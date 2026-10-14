@@ -25,9 +25,11 @@ final class PointsStore: ObservableObject {
         let reason: String
     }
 
-    static let startingBalance = 100
+    static let startingBalance = 999_999
     static let scanRewardPerCard = 50
     static let dailyBonus = 50
+    /// Obergrenze für Testguthaben im Diagnose-Menü.
+    static let maximumBalance = 999_999
     /// Anzeigedauer der Belohnungs-Snackbar in Sekundenbruchteilen.
     static let rewardDurationNanoseconds: UInt64 = 2_500_000_000
 
@@ -84,6 +86,13 @@ final class PointsStore: ObservableObject {
     /// Blendet das Belohnungs-Banner sofort aus (z. B. beim Verlassen der Ansicht).
     func clearReward() {
         reward = nil
+    }
+
+    /// Setzt das Guthaben auf das Maximum (Test-/Diagnosefunktion).
+    func grantMaximumBalance() {
+        balance = Self.maximumBalance
+        persistBalance()
+        showReward(amount: Self.maximumBalance, reason: "Testguthaben")
     }
 
     private func showReward(amount: Int, reason: String) {

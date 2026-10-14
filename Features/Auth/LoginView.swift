@@ -37,14 +37,7 @@ struct LoginView: View {
 
     private var header: some View {
         VStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(.white.opacity(0.2))
-                    .frame(width: 88, height: 88)
-                Image(systemName: "sparkles.rectangle.stack.fill")
-                    .font(.system(size: 40))
-                    .foregroundStyle(.white)
-            }
+            BrandLogo(size: 92)
             Text("PokéJ")
                 .font(.largeTitle.bold())
                 .foregroundStyle(.white)

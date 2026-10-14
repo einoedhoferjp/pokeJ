@@ -23,6 +23,7 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    brandHeader
                     scanCallToAction
                     valueCard
                     statsGrid
@@ -93,85 +94,102 @@ struct HomeView: View {
 
     // MARK: - Bausteine
 
-    private var scanCallToAction: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(greeting)
-                .font(.title3.weight(.bold))
-                .foregroundStyle(AppTheme.ink)
-            Text("Erfasse deine Karten mit der Kamera – direkt in die Sammlung.")
-                .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
-            Button {
-                showScanner = true
-            } label: {
-                Label("Karte scannen", systemImage: "camera.viewfinder")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+    private var brandHeader: some View {
+        HStack(spacing: 12) {
+            BrandLogo(size: 52)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("PokéJ")
+                    .font(.title2.weight(.heavy))
+                    .foregroundStyle(AppTheme.ink)
+                Text(greeting)
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
             }
-            .buttonStyle(BrandButtonStyle())
-            .padding(.top, 6)
+            Spacer()
+        }
+    }
+
+    private var scanCallToAction: some View {
+        PokedexPanel(title: "Scanner", statusLED: AppTheme.ledGreen) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Erfasse deine Karten mit der Kamera – direkt in die Sammlung.")
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+                Button {
+                    showScanner = true
+                } label: {
+                    Label("Karte scannen", systemImage: "camera.viewfinder")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                }
+                .buttonStyle(BrandButtonStyle())
+            }
         }
     }
 
     private var valueCard: some View {
         let value = CollectionStats.value(items: items, snapshots: snapshots)
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Sammlungswert")
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                    Text(PriceFormatting.currency(value.total, code: value.currency))
-                        .font(.largeTitle.weight(.bold))
-                        .foregroundStyle(AppTheme.ink)
-                        .monospacedDigit()
-                }
-                Spacer()
-                if isRefreshing {
-                    ProgressView()
-                } else {
-                    Button {
-                        Task { await refreshPrices() }
-                    } label: {
-                        Label("Preise aktualisieren", systemImage: "arrow.clockwise")
+        return PokedexPanel(title: "Sammlung", statusLED: AppTheme.ledGold) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Sammlungswert")
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                        Text(PriceFormatting.currency(value.total, code: value.currency))
+                            .font(.largeTitle.weight(.bold))
+                            .foregroundStyle(AppTheme.ink)
+                            .monospacedDigit()
                     }
-                    .buttonStyle(GlassButtonStyle())
-                    .font(.caption)
+                    Spacer()
+                    if isRefreshing {
+                        ProgressView()
+                    } else {
+                        Button {
+                            Task { await refreshPrices() }
+                        } label: {
+                            Label("Preise aktualisieren", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(GlassButtonStyle())
+                        .font(.caption)
+                    }
                 }
-            }
-            HStack(spacing: 12) {
-                if value.unpricedCount > 0 {
-                    Label("\(value.unpricedCount) ohne Preis", systemImage: "questionmark.circle")
+                HStack(spacing: 12) {
+                    if value.unpricedCount > 0 {
+                        Label("\(value.unpricedCount) ohne Preis", systemImage: "questionmark.circle")
+                    }
+                    if value.staleCount > 0 {
+                        Label("\(value.staleCount) veraltet", systemImage: "exclamationmark.triangle")
+                    }
+                    if value.unpricedCount == 0, value.staleCount == 0 {
+                        Label("Alle Preise aktuell", systemImage: "checkmark.circle")
+                    }
                 }
-                if value.staleCount > 0 {
-                    Label("\(value.staleCount) veraltet", systemImage: "exclamationmark.triangle")
+                .font(.caption2)
+                .foregroundStyle(AppTheme.textSecondary)
+                if let refreshNote {
+                    Text(refreshNote)
+                        .font(.caption2)
+                        .foregroundStyle(AppTheme.textSecondary)
+                } else if let last = PriceRefreshLog().lastFullRefresh {
+                    Text("Preise aktualisiert \(PriceFormatting.relative(last, now: Date()))")
+                        .font(.caption2)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
-                if value.unpricedCount == 0, value.staleCount == 0 {
-                    Label("Alle Preise aktuell", systemImage: "checkmark.circle")
-                }
-            }
-            .font(.caption2)
-            .foregroundStyle(AppTheme.textSecondary)
-            if let refreshNote {
-                Text(refreshNote)
-                    .font(.caption2)
-                    .foregroundStyle(AppTheme.textSecondary)
-            } else if let last = PriceRefreshLog().lastFullRefresh {
-                Text("Preise aktualisiert \(PriceFormatting.relative(last, now: Date()))")
-                    .font(.caption2)
-                    .foregroundStyle(AppTheme.textSecondary)
             }
         }
-        .surfaceCard()
     }
 
     private var statsGrid: some View {
-        LazyVGrid(columns: statColumns, spacing: 12) {
-            StatTile(icon: "shippingbox.fill", value: "\(CollectionStats.totalQuantity(items))", label: "Karten")
-            StatTile(icon: "rectangle.stack.fill", value: "\(CollectionStats.uniqueCardCount(items))", label: "Verschiedene Karten")
-            StatTile(icon: "square.grid.2x2.fill", value: "\(CollectionStats.setCount(items))", label: "Sets")
-            StatTile(icon: "point.3.connected.trianglepath.dotted", value: "\(points.balance)", label: "Punkte")
+        VStack(alignment: .leading, spacing: 10) {
+            PokedexSectionHeader(title: "Übersicht", systemImage: "chart.bar.fill")
+            LazyVGrid(columns: statColumns, spacing: 12) {
+                StatTile(icon: "shippingbox.fill", value: "\(CollectionStats.totalQuantity(items))", label: "Karten")
+                StatTile(icon: "rectangle.stack.fill", value: "\(CollectionStats.uniqueCardCount(items))", label: "Verschiedene Karten")
+                StatTile(icon: "square.grid.2x2.fill", value: "\(CollectionStats.setCount(items))", label: "Sets")
+                StatTile(icon: "point.3.connected.trianglepath.dotted", value: "\(points.balance)", label: "Punkte")
+            }
         }
     }
 
@@ -187,9 +205,7 @@ struct HomeView: View {
 
     private var recentCards: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Letzte Zugänge")
-                .font(.headline)
-                .foregroundStyle(AppTheme.ink)
+            PokedexSectionHeader(title: "Letzte Zugänge", systemImage: "clock.arrow.circlepath")
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 12) {
                     ForEach(items.prefix(8)) { item in
@@ -209,9 +225,7 @@ struct HomeView: View {
     @ViewBuilder
     private var recentScans: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Letzte Scans")
-                .font(.headline)
-                .foregroundStyle(AppTheme.ink)
+            PokedexSectionHeader(title: "Letzte Scans", systemImage: "viewfinder")
             if scans.isEmpty {
                 Text("Noch keine Scans. Starte oben mit „Karte scannen\".")
                     .font(.caption)

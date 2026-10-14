@@ -14,7 +14,7 @@ enum LibrarySearchMode: String, CaseIterable, Identifiable {
 
     var placeholder: String {
         switch self {
-        case .number: return "# /"
+        case .number: return "Kartennummer (z. B. 025)"
         case .text: return "Name"
         }
     }

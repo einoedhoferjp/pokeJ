@@ -52,6 +52,9 @@ struct SetBrowserView: View {
             }
             .navigationTitle("Alle Sets")
             .searchable(text: $searchText, prompt: searchMode.placeholder)
+            .onChange(of: searchText) { _, text in
+                if text.isEmpty { searchMode = .number }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Picker("Suchmodus", selection: $searchMode) {

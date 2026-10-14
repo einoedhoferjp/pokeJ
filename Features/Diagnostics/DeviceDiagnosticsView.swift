@@ -11,6 +11,7 @@ import VisionKit
 struct DeviceDiagnosticsView: View {
     @Environment(\.cardDataProvider) private var cardDataProvider
     @Environment(\.priceProvider) private var priceProvider
+    @EnvironmentObject private var points: PointsStore
 
     @State private var catalogProbe: Probe = .idle
     @State private var priceProbe: Probe = .idle
@@ -46,6 +47,7 @@ struct DeviceDiagnosticsView: View {
             deviceSection
             catalogSection
             liveSection
+            testSection
         }
         .navigationTitle("Gerätetest")
         .navigationBarTitleDisplayMode(.inline)
@@ -82,6 +84,17 @@ struct DeviceDiagnosticsView: View {
             }
             probeRow(title: "Preise", probe: priceProbe) {
                 Task { await runPriceProbe() }
+            }
+        }
+    }
+
+    private var testSection: some View {
+        Section("Test") {
+            LabeledContent("Punkte", value: "\(points.balance)")
+            Button {
+                points.grantMaximumBalance()
+            } label: {
+                Label("Punkte auf Maximum setzen (\(PointsStore.maximumBalance))", systemImage: "arrow.up.to.line.circle")
             }
         }
     }
@@ -149,4 +162,5 @@ struct DeviceDiagnosticsView: View {
 
 #Preview {
     NavigationStack { DeviceDiagnosticsView() }
+        .environmentObject(PointsStore())
 }

@@ -143,6 +143,9 @@ struct LibraryView: View {
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await autoRefreshIfDue() } }
             }
+            .onChange(of: filter.searchText) { _, text in
+                if text.isEmpty { filter.searchMode = .number }
+            }
             .toolbarBackground(AppTheme.backgroundTop, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
@@ -248,48 +251,44 @@ struct LibraryView: View {
 
     private var valueSummary: some View {
         let value = collectionValue
-        return VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Sammlungswert")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(PriceFormatting.currency(value.total, code: value.currency))
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                }
-                Spacer()
-                if isRefreshing {
-                    ProgressView()
-                } else {
-                    Button {
-                        Task { await refreshPrices() }
-                    } label: {
-                        Label("Preise aktualisieren", systemImage: "arrow.clockwise")
+        return PokedexPanel(title: "Sammlung", statusLED: AppTheme.ledGold) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Sammlungswert")
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                        Text(PriceFormatting.currency(value.total, code: value.currency))
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(AppTheme.ink)
                     }
-                    .buttonStyle(.bordered)
+                    Spacer()
+                    if isRefreshing {
+                        ProgressView()
+                    }
                 }
-            }
-            HStack(spacing: 12) {
-                Label("\(totalQuantity) Karten", systemImage: "shippingbox")
-                if value.unpricedCount > 0 {
-                    Label("\(value.unpricedCount) ohne Preis", systemImage: "questionmark.circle")
+                HStack(spacing: 12) {
+                    Label("\(totalQuantity) Karten", systemImage: "shippingbox")
+                    if value.unpricedCount > 0 {
+                        Label("\(value.unpricedCount) ohne Preis", systemImage: "questionmark.circle")
+                    }
+                    if value.staleCount > 0 {
+                        Label("\(value.staleCount) veraltet", systemImage: "exclamationmark.triangle")
+                    }
                 }
-                if value.staleCount > 0 {
-                    Label("\(value.staleCount) veraltet", systemImage: "exclamationmark.triangle")
+                .font(.caption2)
+                .foregroundStyle(AppTheme.textSecondary)
+                lastRefreshNote
+                if let refreshNote {
+                    Text(refreshNote)
+                        .font(.caption2)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
-            }
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            lastRefreshNote
-            if let refreshNote {
-                Text(refreshNote)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.top, 8)
     }
 
     private var totalQuantity: Int {

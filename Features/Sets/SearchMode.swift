@@ -14,7 +14,7 @@ enum SearchMode: String, CaseIterable, Identifiable {
 
     var placeholder: String {
         switch self {
-        case .number: return "# /"
+        case .number: return "Set-Nummer (z. B. sv3)"
         case .text: return "Name"
         }
     }

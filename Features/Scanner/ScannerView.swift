@@ -324,6 +324,11 @@ struct ScannerView: View {
             priceRow(result)
 
             if !result.outcome.matches.isEmpty {
+                if result.status == .multiple, selection[result.id] == nil {
+                    Label("Mehrere plausible Treffer – bitte die richtige Karte antippen.", systemImage: "hand.tap.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.gold)
+                }
                 VStack(spacing: 6) {
                     ForEach(Array(result.outcome.matches.prefix(4))) { match in
                         Button {
@@ -479,7 +484,9 @@ struct ScannerView: View {
     // MARK: - Aktionen
 
     private func effectiveMatch(for result: ScanPageResult) -> CardMatch? {
-        selection[result.id] ?? result.topMatch
+        if let selected = selection[result.id] { return selected }
+        guard result.status != .multiple else { return nil }
+        return result.topMatch
     }
 
     private func presentCapture() {
