@@ -39,6 +39,12 @@ enum AuthService {
             salt: "pqj-sammler-2026",
             hash: "8183c81d7f6ac55c1205f68f5b060b86f39cbf8810e54615e4ee8eff35618699",
             displayName: "Sammler"
+        ),
+        AuthAccount(
+            username: "berli",
+            salt: "pqj-berli-2026",
+            hash: "52854b93a30b17733606a79e3166d11917c48995e59ee46b7c37765f21b4a07a",
+            displayName: "Berli"
         )
     ]
 
@@ -47,7 +53,8 @@ enum AuthService {
         ("admin", "admin"),
         ("pokefan", "pikachu"),
         ("test", "test"),
-        ("sammler", "glueckspilz")
+        ("sammler", "glueckspilz"),
+        ("berli", "test123")
     ]
 
     static func hash(password: String, salt: String) -> String {
