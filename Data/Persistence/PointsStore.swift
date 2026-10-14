@@ -39,26 +39,79 @@ final class PointsStore: ObservableObject {
     @Published private(set) var reward: RewardEvent?
 
     private let defaults: UserDefaults
+    private var username: String?
 
-    private static let initializedKey = "pokej.points.initialized"
-    private static let balanceKey = "pokej.points.balance"
-    private static let dailyKey = "pokej.points.dailyBonus"
-    private static let recentKey = "pokej.points.recentOpenings"
+    /// Inhaber der bisherigen, nicht kontogebundenen Daten.
+    private static let legacyOwnerKey = "berli"
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, username: String? = nil) {
         self.defaults = defaults
-        if defaults.bool(forKey: Self.initializedKey) {
-            self.balance = defaults.integer(forKey: Self.balanceKey)
+        self.username = username
+        let prefix = Self.keyPrefix(for: username)
+        Self.migrateLegacyIfNeeded(defaults: defaults, prefix: prefix, username: username)
+
+        if defaults.bool(forKey: prefix + "initialized") {
+            self.balance = defaults.integer(forKey: prefix + "balance")
         } else {
             self.balance = Self.startingBalance
-            defaults.set(true, forKey: Self.initializedKey)
-            defaults.set(Self.startingBalance, forKey: Self.balanceKey)
+            defaults.set(true, forKey: prefix + "initialized")
+            defaults.set(Self.startingBalance, forKey: prefix + "balance")
         }
-        if let data = defaults.data(forKey: Self.recentKey),
+        if let data = defaults.data(forKey: prefix + "recentOpenings"),
            let events = try? JSONDecoder().decode([PackOpeningEvent].self, from: data) {
             self.recentOpenings = events
         } else {
             self.recentOpenings = []
+        }
+    }
+
+    /// Wechselt auf das Konto `username` (oder `nil` beim Abmelden) und lädt
+    /// dessen Punkte, Tagesbonus und Öffnungsverlauf.
+    func configure(for username: String?) {
+        guard username != self.username else { return }
+        self.username = username
+        let prefix = Self.keyPrefix(for: username)
+        Self.migrateLegacyIfNeeded(defaults: defaults, prefix: prefix, username: username)
+
+        if defaults.bool(forKey: prefix + "initialized") {
+            balance = defaults.integer(forKey: prefix + "balance")
+        } else {
+            balance = Self.startingBalance
+            defaults.set(true, forKey: prefix + "initialized")
+            defaults.set(Self.startingBalance, forKey: prefix + "balance")
+        }
+        if let data = defaults.data(forKey: prefix + "recentOpenings"),
+           let events = try? JSONDecoder().decode([PackOpeningEvent].self, from: data) {
+            recentOpenings = events
+        } else {
+            recentOpenings = []
+        }
+        reward = nil
+    }
+
+    private static func keyPrefix(for username: String?) -> String {
+        guard let username else { return "pokej.points." }
+        return "pokej.points.\(AccountStorage.storageKey(for: username))."
+    }
+
+    private func key(_ suffix: String) -> String {
+        Self.keyPrefix(for: username) + suffix
+    }
+
+    /// Übernimmt die früher global gespeicherten Punkte einmalig in das Konto
+    /// des bisherigen Besitzers.
+    private static func migrateLegacyIfNeeded(defaults: UserDefaults, prefix: String, username: String?) {
+        guard let username, username.lowercased() == legacyOwnerKey else { return }
+        guard !defaults.bool(forKey: prefix + "initialized"),
+              defaults.bool(forKey: "pokej.points.initialized") else { return }
+
+        defaults.set(true, forKey: prefix + "initialized")
+        defaults.set(defaults.integer(forKey: "pokej.points.balance"), forKey: prefix + "balance")
+        if let date = defaults.object(forKey: "pokej.points.dailyBonus") as? Date {
+            defaults.set(date, forKey: prefix + "dailyBonus")
+        }
+        if let data = defaults.data(forKey: "pokej.points.recentOpenings") {
+            defaults.set(data, forKey: prefix + "recentOpenings")
         }
     }
 
@@ -133,22 +186,22 @@ final class PointsStore: ObservableObject {
     }
 
     private var lastDailyBonus: Date? {
-        get { defaults.object(forKey: Self.dailyKey) as? Date }
+        get { defaults.object(forKey: key("dailyBonus")) as? Date }
         set {
             if let newValue {
-                defaults.set(newValue, forKey: Self.dailyKey)
+                defaults.set(newValue, forKey: key("dailyBonus"))
             } else {
-                defaults.removeObject(forKey: Self.dailyKey)
+                defaults.removeObject(forKey: key("dailyBonus"))
             }
         }
     }
 
     private func persistBalance() {
-        defaults.set(balance, forKey: Self.balanceKey)
+        defaults.set(balance, forKey: key("balance"))
     }
 
     private func persistRecent() {
         guard let data = try? JSONEncoder().encode(recentOpenings) else { return }
-        defaults.set(data, forKey: Self.recentKey)
+        defaults.set(data, forKey: key("recentOpenings"))
     }
 }

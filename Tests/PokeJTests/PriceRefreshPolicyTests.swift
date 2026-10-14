@@ -36,4 +36,19 @@ final class PriceRefreshPolicyTests: XCTestCase {
         XCTAssertEqual(PriceRefreshLog(defaults: defaults).lastFullRefresh, stamp)
         XCTAssertFalse(PriceRefreshLog(defaults: defaults).isRefreshDue(now: stamp.addingTimeInterval(60)))
     }
+
+    func testLogIsIsolatedPerAccount() {
+        let suite = "test.pricelog.perAccount"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let alice = PriceRefreshLog(defaults: defaults, username: "alice")
+        let bob = PriceRefreshLog(defaults: defaults, username: "bob")
+        let stamp = Date()
+        alice.markRefreshed(at: stamp)
+
+        XCTAssertEqual(alice.lastFullRefresh, stamp)
+        XCTAssertNil(bob.lastFullRefresh)
+        XCTAssertTrue(bob.isRefreshDue(now: stamp))
+    }
 }

@@ -24,6 +24,13 @@ final class AuthServiceTests: XCTestCase {
         XCTAssertNil(AuthService.verify(username: "unbekannt", password: "egal"))
     }
 
+    func testRegistrationErrorMessages() {
+        XCTAssertNotNil(AuthService.registrationError(username: "ab", password: "geheim123"))
+        XCTAssertNotNil(AuthService.registrationError(username: "frischername", password: "123"))
+        XCTAssertNotNil(AuthService.registrationError(username: "admin", password: "geheim123"))
+        XCTAssertNil(AuthService.registrationError(username: "frischername", password: "geheim123"))
+    }
+
     @MainActor
     func testAuthStorePersistsSession() {
         let suiteName = "pokej.tests.auth.\(UUID().uuidString)"
@@ -41,5 +48,18 @@ final class AuthServiceTests: XCTestCase {
 
         store.logout()
         XCTAssertFalse(store.isAuthenticated)
+    }
+
+    @MainActor
+    func testAuthStoreRegistersNewAccount() {
+        let suiteName = "pokej.tests.auth.register.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let store = AuthStore(defaults: defaults)
+        let name = "tester" + UUID().uuidString.prefix(8)
+        XCTAssertTrue(store.register(username: name, password: "geheim123", displayName: ""))
+        XCTAssertTrue(store.isAuthenticated)
+        XCTAssertEqual(store.currentUser?.username, name)
     }
 }

@@ -1,9 +1,9 @@
 import CryptoKit
 import Foundation
 
-/// Ein lokaler Probe-Account. Passwörter werden nie im Klartext gespeichert,
+/// Ein lokaler Account. Passwörter werden nie im Klartext gespeichert,
 /// sondern als mit einem Salt versehener SHA-256-Hash.
-struct AuthAccount: Identifiable, Sendable, Equatable {
+struct AuthAccount: Identifiable, Sendable, Equatable, Codable {
     let username: String
     let salt: String
     let hash: String
@@ -14,8 +14,9 @@ struct AuthAccount: Identifiable, Sendable, Equatable {
 
 /// Lokale Anmeldung ohne Server. Nur für die App-interne Demo gedacht.
 enum AuthService {
-    /// Probeaccounts. Zugangsdaten sind bewusst dokumentiert (Demo).
-    static let accounts: [AuthAccount] = [
+    /// Startbestand an Demo-Konten. Wird beim ersten Start in den Account-Speicher
+    /// übernommen und kann danach um eigene Konten ergänzt werden.
+    static let seedAccounts: [AuthAccount] = [
         AuthAccount(
             username: "admin",
             salt: "pqj-admin-2026",
@@ -62,13 +63,40 @@ enum AuthService {
         return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 
+    /// Prüft die Zugangsdaten gegen den aktuellen Account-Speicher.
     static func verify(username: String, password: String) -> AuthAccount? {
+        verify(username: username, password: password, in: AccountStorage.shared.accounts)
+    }
+
+    /// Reine Prüflogik gegen eine übergebene Kontenliste (testbar).
+    static func verify(username: String, password: String, in accounts: [AuthAccount]) -> AuthAccount? {
         let name = username.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard let account = accounts.first(where: { $0.username.lowercased() == name }) else {
             return nil
         }
         let candidate = hash(password: password, salt: account.salt)
         return constantTimeEquals(candidate, account.hash) ? account : nil
+    }
+
+    /// Legt ein neues Konto an (lokale Registrierung).
+    static func register(username: String, password: String, displayName: String) -> AuthAccount? {
+        AccountStorage.shared.register(username: username, password: password, displayName: displayName)
+    }
+
+    /// Gibt eine verständliche Fehlermeldung zurück oder `nil`, wenn die Eingaben
+    /// für eine Registrierung in Ordnung sind.
+    static func registrationError(username: String, password: String) -> String? {
+        let name = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !AccountStorage.isValidUsername(name) {
+            return "Benutzername: 3–24 Zeichen, Buchstaben/Zahlen oder Leerzeichen, - _ ."
+        }
+        if password.count < 6 {
+            return "Das Passwort muss mindestens 6 Zeichen haben."
+        }
+        if AccountStorage.shared.account(named: name) != nil {
+            return "Dieser Benutzername ist bereits vergeben."
+        }
+        return nil
     }
 
     private static func constantTimeEquals(_ lhs: String, _ rhs: String) -> Bool {

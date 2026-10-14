@@ -172,7 +172,7 @@ struct HomeView: View {
                     Text(refreshNote)
                         .font(.caption2)
                         .foregroundStyle(AppTheme.textSecondary)
-                } else if let last = PriceRefreshLog().lastFullRefresh {
+                } else if let last = PriceRefreshLog(username: auth.currentUser?.username).lastFullRefresh {
                     Text("Preise aktualisiert \(PriceFormatting.relative(last, now: Date()))")
                         .font(.caption2)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -291,7 +291,7 @@ struct HomeView: View {
     @MainActor
     private func autoRefreshIfDue() async {
         guard !items.isEmpty, !isRefreshing else { return }
-        guard PriceRefreshLog().isRefreshDue() else { return }
+        guard PriceRefreshLog(username: auth.currentUser?.username).isRefreshDue() else { return }
         await refreshPrices()
     }
 
@@ -305,7 +305,7 @@ struct HomeView: View {
         isRefreshing = false
 
         if summary.failedTargets == 0 {
-            PriceRefreshLog().markRefreshed()
+            PriceRefreshLog(username: auth.currentUser?.username).markRefreshed()
         }
 
         var parts: [String] = []

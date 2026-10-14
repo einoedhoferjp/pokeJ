@@ -51,4 +51,33 @@ final class PointsStoreTests: XCTestCase {
         XCTAssertFalse(store.canClaimDailyBonus)
         XCTAssertFalse(store.claimDailyBonus())
     }
+
+    func testPointsAreIsolatedPerAccount() {
+        let suite = "test.points.perAccount"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let alice = PointsStore(defaults: defaults, username: "alice")
+        alice.awardScanReward()
+        XCTAssertEqual(alice.balance, PointsStore.startingBalance + PointsStore.scanRewardPerCard)
+
+        let bob = PointsStore(defaults: defaults, username: "bob")
+        XCTAssertEqual(bob.balance, PointsStore.startingBalance)
+    }
+
+    func testConfigureSwitchesAccounts() {
+        let suite = "test.points.configure"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let store = PointsStore(defaults: defaults, username: "alice")
+        store.awardScanReward()
+        let aliceBalance = store.balance
+
+        store.configure(for: "bob")
+        XCTAssertEqual(store.balance, PointsStore.startingBalance)
+
+        store.configure(for: "alice")
+        XCTAssertEqual(store.balance, aliceBalance)
+    }
 }

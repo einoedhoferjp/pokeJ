@@ -4,10 +4,12 @@ import Foundation
 /// aktualisiert wurden. Grundlage für die tägliche Auto-Aktualisierung.
 struct PriceRefreshLog {
     private let defaults: UserDefaults
-    private let key = "pokej.prices.lastFullRefresh"
+    private let key: String
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, username: String? = nil) {
         self.defaults = defaults
+        self.key = username.map { "pokej.prices.\(AccountStorage.storageKey(for: $0)).lastFullRefresh" }
+            ?? "pokej.prices.lastFullRefresh"
     }
 
     var lastFullRefresh: Date? {

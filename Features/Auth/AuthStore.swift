@@ -11,7 +11,7 @@ final class AuthStore: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         if let username = defaults.string(forKey: storageKey),
-           let account = AuthService.accounts.first(where: { $0.username == username }) {
+           let account = AccountStorage.shared.account(named: username) {
             currentUser = account
         }
     }
@@ -21,6 +21,17 @@ final class AuthStore: ObservableObject {
     @discardableResult
     func login(username: String, password: String) -> Bool {
         guard let account = AuthService.verify(username: username, password: password) else {
+            return false
+        }
+        currentUser = account
+        defaults.set(account.username, forKey: storageKey)
+        return true
+    }
+
+    /// Legt ein neues lokales Konto an und meldet es direkt an.
+    @discardableResult
+    func register(username: String, password: String, displayName: String) -> Bool {
+        guard let account = AuthService.register(username: username, password: password, displayName: displayName) else {
             return false
         }
         currentUser = account
