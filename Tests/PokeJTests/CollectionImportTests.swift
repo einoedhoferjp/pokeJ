@@ -27,7 +27,8 @@ final class CollectionImportTests: XCTestCase {
         printing: String = "normal",
         condition: String = "nearMint",
         quantity: Int = 1,
-        notes: String = ""
+        notes: String = "",
+        origin: String? = nil
     ) -> CollectionExport.ItemDTO {
         CollectionExport.ItemDTO(
             cardId: cardId,
@@ -42,7 +43,8 @@ final class CollectionImportTests: XCTestCase {
             notes: notes,
             purchasePrice: nil,
             purchaseDate: nil,
-            createdAt: Date(timeIntervalSince1970: 0)
+            createdAt: Date(timeIntervalSince1970: 0),
+            origin: origin
         )
     }
 
@@ -103,6 +105,26 @@ final class CollectionImportTests: XCTestCase {
         XCTAssertEqual(summary.imported, 0)
         XCTAssertEqual(summary.skipped, 1)
         XCTAssertEqual(try context.fetchCount(FetchDescriptor<CollectionItem>()), 0)
+    }
+
+    @MainActor
+    func testImportRestoresPackOrigin() throws {
+        let json = try encode([dto(notes: "Aus Pack geöffnet", origin: "pack")])
+        let context = try makeContext()
+        _ = CollectionImport.apply(try CollectionImport.decode(json), context: context)
+
+        let fetched = try context.fetch(FetchDescriptor<CollectionItem>())
+        XCTAssertEqual(fetched.first?.origin, .pack)
+    }
+
+    @MainActor
+    func testImportDefaultsOriginToScanned() throws {
+        let json = try encode([dto()])
+        let context = try makeContext()
+        _ = CollectionImport.apply(try CollectionImport.decode(json), context: context)
+
+        let fetched = try context.fetch(FetchDescriptor<CollectionItem>())
+        XCTAssertEqual(fetched.first?.origin, .scanned)
     }
 
     func testDecodeRejectsInvalidJSON() {

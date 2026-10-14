@@ -8,12 +8,41 @@ struct PackPull: Identifiable, Hashable, Sendable {
     let printing: Printing
 
     var isHolo: Bool { printing == .holo }
+
+    /// Kartenbild, mit englischem Set als Ausweichquelle, wenn kein deutsches
+    /// Bild im Katalog hinterlegt ist.
+    var imageURL: URL? {
+        card.thumbnailURL
+            ?? SetArtworkCatalog.artwork(for: set.id)?.englishImageURL(localId: card.localId, highResolution: false)
+    }
+
+    var highResURL: URL? {
+        card.highResURL
+            ?? SetArtworkCatalog.artwork(for: set.id)?.englishImageURL(localId: card.localId, highResolution: true)
+    }
 }
 
 /// Öffnet fiktive Booster zufällig aus dem gebündelten Offline-Katalog.
 enum PackOpener {
     /// Wahrscheinlichkeit, dass eine nicht garantierte Karte als Holo fällt.
     static let baseHoloChance = 0.15
+
+    /// Zieht aus dem Set des Boosters (oder aus allen Sets, wenn kein Set
+    /// gebunden ist, z. B. bei den Test-Packs).
+    static func open(_ pack: PackDefinition) -> [PackPull] {
+        var rng = SystemRandomNumberGenerator()
+        return open(pack, rng: &rng)
+    }
+
+    static func open(_ pack: PackDefinition, rng: inout some RandomNumberGenerator) -> [PackPull] {
+        let sets: [CatalogSet]
+        if let setId = pack.setId, let set = PokemonCatalog.sets.first(where: { $0.id == setId }) {
+            sets = [set]
+        } else {
+            sets = PokemonCatalog.sets
+        }
+        return open(pack, from: sets, rng: &rng)
+    }
 
     static func open(_ pack: PackDefinition, from sets: [CatalogSet]) -> [PackPull] {
         var rng = SystemRandomNumberGenerator()

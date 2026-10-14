@@ -5,6 +5,12 @@ import SwiftData
 /// offline sinnvoll nutzbar und testbar ist.
 @MainActor
 enum SeedLoader {
+    /// Führt die einmalige Seeding-Logik und die Herkunfts-Migration aus.
+    static func bootstrap(in context: ModelContext) {
+        seedIfNeeded(in: context)
+        migrateFictionalOrigins(in: context)
+    }
+
     static func seedIfNeeded(in context: ModelContext) {
         let existingCount = (try? context.fetchCount(FetchDescriptor<Card>())) ?? 0
         guard existingCount == 0 else { return }
@@ -41,11 +47,28 @@ enum SeedLoader {
             let item = CollectionItem(
                 quantity: 2,
                 confirmedCondition: .nearMint,
-                notes: "Aus Booster geöffnet"
+                notes: "Aus Booster geöffnet",
+                origin: .pack
             )
             repository.addCollectionItem(card: furret, language: .en, printing: .normal, item: item)
         }
 
+        try? context.save()
+    }
+
+    /// Ordnet vor der Einführung der Herkunft gespeicherte Booster-Karten der
+    /// fiktiven Sammlung zu (erkennbar an ihren Notizen).
+    static func migrateFictionalOrigins(in context: ModelContext) {
+        let descriptor = FetchDescriptor<CollectionItem>(
+            predicate: #Predicate { item in
+                item.originRaw == "scanned"
+                    && (item.notes == "Aus Pack geöffnet" || item.notes == "Aus Booster geöffnet")
+            }
+        )
+        guard let items = try? context.fetch(descriptor), !items.isEmpty else { return }
+        for item in items {
+            item.origin = .pack
+        }
         try? context.save()
     }
 }

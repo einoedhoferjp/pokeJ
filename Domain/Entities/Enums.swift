@@ -54,6 +54,28 @@ enum CardCondition: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// Herkunft eines Exemplars: real erfasst (gescannt/eingetragen) oder aus
+/// einem fiktiven Booster gezogen. Trennt echte von fiktiven Sammlungen.
+enum CollectionOrigin: String, Codable, CaseIterable, Identifiable, Sendable {
+    case scanned, pack
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .scanned: return "Gescannt"
+        case .pack: return "Aus Packs"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .scanned: return "camera.viewfinder"
+        case .pack: return "sparkles"
+        }
+    }
+}
+
 /// Kennzahl eines Preisdatensatzes (Cardmarket über TCGdex).
 enum PriceMetric: String, Codable, CaseIterable, Identifiable, Sendable {
     case avg, low, trend, avg1, avg7, avg30

@@ -12,6 +12,15 @@ struct HomeView: View {
     @Query(sort: \PriceSnapshot.fetchedAt, order: .reverse) private var snapshots: [PriceSnapshot]
     @Query(sort: \ScanRecord.timestamp, order: .reverse) private var scans: [ScanRecord]
 
+    /// Nur real erfasste Karten – fiktive Booster-Karten zählen hier nicht.
+    private var realItems: [CollectionItem] {
+        items.filter { $0.origin == .scanned }
+    }
+
+    private var fictionalQuantity: Int {
+        CollectionStats.totalQuantity(items.filter { $0.origin == .pack })
+    }
+
     @State private var showScanner = false
     @State private var showAdd = false
     @State private var isRefreshing = false
@@ -28,7 +37,7 @@ struct HomeView: View {
                     valueCard
                     statsGrid
                     quickActions
-                    if !items.isEmpty { recentCards }
+                    if !realItems.isEmpty { recentCards }
                     recentScans
                 }
                 .padding()
@@ -87,7 +96,7 @@ struct HomeView: View {
             AddEditCardView(mode: .add)
         }
         .onAppear {
-            SeedLoader.seedIfNeeded(in: context)
+            SeedLoader.bootstrap(in: context)
         }
         .task { await autoRefreshIfDue() }
     }
@@ -129,7 +138,7 @@ struct HomeView: View {
     }
 
     private var valueCard: some View {
-        let value = CollectionStats.value(items: items, snapshots: snapshots)
+        let value = CollectionStats.value(items: realItems, snapshots: snapshots)
         return PokedexPanel(title: "Sammlung", statusLED: AppTheme.ledGold) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline) {
@@ -185,9 +194,10 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 10) {
             PokedexSectionHeader(title: "Übersicht", systemImage: "chart.bar.fill")
             LazyVGrid(columns: statColumns, spacing: 12) {
-                StatTile(icon: "shippingbox.fill", value: "\(CollectionStats.totalQuantity(items))", label: "Karten")
-                StatTile(icon: "rectangle.stack.fill", value: "\(CollectionStats.uniqueCardCount(items))", label: "Verschiedene Karten")
-                StatTile(icon: "square.grid.2x2.fill", value: "\(CollectionStats.setCount(items))", label: "Sets")
+                StatTile(icon: "shippingbox.fill", value: "\(CollectionStats.totalQuantity(realItems))", label: "Karten")
+                StatTile(icon: "rectangle.stack.fill", value: "\(CollectionStats.uniqueCardCount(realItems))", label: "Verschiedene Karten")
+                StatTile(icon: "square.grid.2x2.fill", value: "\(CollectionStats.setCount(realItems))", label: "Sets")
+                StatTile(icon: "sparkles", value: "\(fictionalQuantity)", label: "Fiktive Karten")
                 StatTile(icon: "point.3.connected.trianglepath.dotted", value: "\(points.balance)", label: "Punkte")
             }
         }
@@ -208,7 +218,7 @@ struct HomeView: View {
             PokedexSectionHeader(title: "Letzte Zugänge", systemImage: "clock.arrow.circlepath")
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 12) {
-                    ForEach(items.prefix(8)) { item in
+                    ForEach(realItems.prefix(8)) { item in
                         NavigationLink {
                             CardDetailView(item: item)
                         } label: {
@@ -290,7 +300,7 @@ struct HomeView: View {
 
     @MainActor
     private func autoRefreshIfDue() async {
-        guard !items.isEmpty, !isRefreshing else { return }
+        guard !realItems.isEmpty, !isRefreshing else { return }
         guard PriceRefreshLog(username: auth.currentUser?.username).isRefreshDue() else { return }
         await refreshPrices()
     }
@@ -301,7 +311,7 @@ struct HomeView: View {
         isRefreshing = true
         refreshNote = nil
         let service = PriceService(provider: priceProvider, context: context)
-        let summary = await service.refresh(items: items)
+        let summary = await service.refresh(items: realItems)
         isRefreshing = false
 
         if summary.failedTargets == 0 {
@@ -316,7 +326,7 @@ struct HomeView: View {
     }
 }
 
-private struct StatTile: View {
+struct StatTile: View {
     let icon: String
     let value: String
     let label: String

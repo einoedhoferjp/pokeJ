@@ -16,6 +16,8 @@ struct CollectionExport {
         let purchasePrice: Decimal?
         let purchaseDate: Date?
         let createdAt: Date
+        /// Herkunft; optional, damit ältere Backups ohne dieses Feld lesbar bleiben.
+        let origin: String?
     }
 
     static func json(items: [CollectionItem]) -> String {
@@ -34,7 +36,8 @@ struct CollectionExport {
                 notes: item.notes,
                 purchasePrice: item.purchasePrice,
                 purchaseDate: item.purchaseDate,
-                createdAt: item.createdAt
+                createdAt: item.createdAt,
+                origin: item.origin.rawValue
             )
         }
         let enc = JSONEncoder()

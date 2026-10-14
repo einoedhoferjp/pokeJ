@@ -15,6 +15,9 @@ final class CollectionItem {
     var purchaseDate: Date?
     var notes: String
     var createdAt: Date
+    /// Herkunft (real erfasst oder aus einem fiktiven Booster). Default hält
+    /// bestehende Datensätze per Lightweight-Migration auf „gescannt".
+    var originRaw: String = CollectionOrigin.scanned.rawValue
 
     var variant: CardVariant?
 
@@ -28,7 +31,8 @@ final class CollectionItem {
         purchasePrice: Decimal? = nil,
         purchaseDate: Date? = nil,
         notes: String = "",
-        createdAt: Date = .now
+        createdAt: Date = .now,
+        origin: CollectionOrigin = .scanned
     ) {
         self.quantity = quantity
         self.confirmedConditionRaw = confirmedCondition.rawValue
@@ -37,6 +41,7 @@ final class CollectionItem {
         self.purchaseDate = purchaseDate
         self.notes = notes
         self.createdAt = createdAt
+        self.originRaw = origin.rawValue
     }
 
     var confirmedCondition: CardCondition {
@@ -47,5 +52,10 @@ final class CollectionItem {
     var estimatedCondition: CardCondition? {
         get { estimatedConditionRaw.flatMap { CardCondition(rawValue: $0) } }
         set { estimatedConditionRaw = newValue?.rawValue }
+    }
+
+    var origin: CollectionOrigin {
+        get { CollectionOrigin(rawValue: originRaw) ?? .scanned }
+        set { originRaw = newValue.rawValue }
     }
 }

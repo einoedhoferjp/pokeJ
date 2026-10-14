@@ -27,8 +27,12 @@ struct LibraryView: View {
         }
     }
 
+    private var realItems: [CollectionItem] {
+        items.filter { $0.origin == .scanned }
+    }
+
     private var visibleItems: [CollectionItem] {
-        filter.apply(to: items)
+        filter.apply(to: realItems)
     }
 
     private var isScannerPresented: Binding<Bool> {
@@ -48,7 +52,7 @@ struct LibraryView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if items.isEmpty {
+                if realItems.isEmpty {
                     ContentUnavailableView(
                         "Keine Karten",
                         systemImage: "rectangle.stack.badge.plus",
@@ -137,9 +141,9 @@ struct LibraryView: View {
                 AddEditCardView(mode: .add)
             }
             .onAppear {
-                SeedLoader.seedIfNeeded(in: context)
+                SeedLoader.bootstrap(in: context)
             }
-            .task(id: items.count) { await autoRefreshIfDue() }
+            .task(id: realItems.count) { await autoRefreshIfDue() }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await autoRefreshIfDue() } }
             }
@@ -233,7 +237,7 @@ struct LibraryView: View {
     // MARK: - Preise
 
     private var collectionValue: CollectionValue {
-        CollectionStats.value(items: items, snapshots: allSnapshots)
+        CollectionStats.value(items: realItems, snapshots: allSnapshots)
     }
 
     @ViewBuilder
@@ -292,12 +296,12 @@ struct LibraryView: View {
     }
 
     private var totalQuantity: Int {
-        items.reduce(0) { $0 + $1.quantity }
+        realItems.reduce(0) { $0 + $1.quantity }
     }
 
     @MainActor
     private func autoRefreshIfDue() async {
-        guard !items.isEmpty, !isRefreshing else { return }
+        guard !realItems.isEmpty, !isRefreshing else { return }
         guard PriceRefreshLog(username: auth.currentUser?.username).isRefreshDue() else { return }
         await refreshPrices()
     }
@@ -308,7 +312,7 @@ struct LibraryView: View {
         isRefreshing = true
         refreshNote = nil
         let service = PriceService(provider: priceProvider, context: context)
-        let summary = await service.refresh(items: items)
+        let summary = await service.refresh(items: realItems)
         isRefreshing = false
 
         if summary.failedTargets == 0 {

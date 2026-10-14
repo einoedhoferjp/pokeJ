@@ -71,6 +71,7 @@ enum CollectionImport {
             )
             let card = repository.findOrCreateCard(from: brief)
             let quantity = max(1, dto.quantity)
+            let origin = dto.origin.flatMap { CollectionOrigin(rawValue: $0) } ?? .scanned
 
             if let existing = repository.existingItem(
                 card: card,
@@ -88,7 +89,8 @@ enum CollectionImport {
                     purchasePrice: dto.purchasePrice,
                     purchaseDate: dto.purchaseDate,
                     notes: dto.notes,
-                    createdAt: dto.createdAt
+                    createdAt: dto.createdAt,
+                    origin: origin
                 )
                 repository.addCollectionItem(card: card, language: language, printing: printing, item: item)
                 summary.imported += 1

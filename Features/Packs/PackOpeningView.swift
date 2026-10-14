@@ -8,7 +8,8 @@ struct PackOpening: Identifiable {
     let pulls: [PackPull]
 }
 
-/// Zeigt ein geöffnetes Pack und fügt die Ziehungen auf Wunsch der Sammlung hinzu.
+/// Öffnet ein fiktives Booster wie ein echtes Pack: erst aufreißen, dann die
+/// Karten einzeln nacheinander ziehen und schließlich der Sammlung hinzufügen.
 struct PackOpeningView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
@@ -16,38 +17,40 @@ struct PackOpeningView: View {
 
     let opening: PackOpening
 
-    @State private var isRevealed = false
+    @State private var isRipped = false
+    @State private var revealedCount = 0
     @State private var hasAdded = false
     @State private var addSummary: String?
     @State private var showDiscardWarning = false
+    @State private var shine = false
 
-    private let columns = [GridItem(.adaptive(minimum: 100), spacing: 10)]
+    private var pulls: [PackPull] { opening.pulls }
+    private var total: Int { pulls.count }
+    private var allRevealed: Bool { total == 0 || revealedCount >= total }
+    private var current: PackPull? {
+        guard revealedCount > 0, revealedCount <= total else { return nil }
+        return pulls[revealedCount - 1]
+    }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    header
-                    if !isRevealed {
-                        openButton
+            ZStack {
+                AppTheme.appBackground.ignoresSafeArea()
+                ScrollView {
+                    VStack(spacing: 20) {
+                        if !isRipped {
+                            sealedPack
+                        } else {
+                            revealArea
+                            drawnRow
+                            if allRevealed {
+                                footerActions
+                            }
+                        }
                     }
-                    cardsGrid
-                    if isRevealed && !hasAdded {
-                        addButton
-                    }
-                    if let addSummary {
-                        Label(addSummary, systemImage: "checkmark.circle.fill")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    if hasAdded {
-                        Button("Fertig") { dismiss() }
-                            .buttonStyle(.bordered)
-                    }
+                    .padding()
                 }
-                .padding()
             }
-            .background(AppTheme.appBackground.ignoresSafeArea())
             .navigationTitle(opening.pack.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(AppTheme.backgroundTop, for: .navigationBar)
@@ -56,8 +59,13 @@ struct PackOpeningView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Schließen") {
-                        if hasAdded { dismiss() } else { showDiscardWarning = true }
+                        if hasAdded || !isRipped { dismiss() } else { showDiscardWarning = true }
                     }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Label("\(opening.pack.cost) P", systemImage: "point.3.connected.trianglepath.dotted")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
             .confirmationDialog(
@@ -73,66 +81,181 @@ struct PackOpeningView: View {
         }
     }
 
-    private var header: some View {
-        VStack(spacing: 6) {
-            Image(systemName: opening.pack.iconName)
-                .font(.system(size: 36))
-                .foregroundStyle(AppTheme.accent)
-            Text(opening.pack.contentsText)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(AppTheme.ink)
-            Text("\(opening.pack.cost) Punkte ausgegeben")
-                .font(.caption)
+    // MARK: - Versiegeltes Pack
+
+    private var sealedPack: some View {
+        VStack(spacing: 18) {
+            Text("Fiktives Booster")
+                .font(.caption.weight(.semibold))
+                .tracking(1.4)
                 .foregroundStyle(AppTheme.textSecondary)
-        }
-    }
 
-    private var openButton: some View {
-        Button {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
-                isRevealed = true
+            ZStack {
+                BoosterPackArt(pack: opening.pack, width: 240)
+                shineSweep
             }
-        } label: {
-            Label("Pack öffnen", systemImage: "sparkles")
-        }
-        .buttonStyle(BrandButtonStyle())
-        .padding(.horizontal)
-    }
+            .scaleEffect(shine ? 1.02 : 1.0)
+            .animation(AppTheme.Motion.bouncy, value: shine)
 
-    private var cardsGrid: some View {
-        LazyVGrid(columns: columns, spacing: AppTheme.gridSpacing) {
-            ForEach(Array(opening.pulls.enumerated()), id: \.element.id) { index, pull in
-                if isRevealed {
-                    PullCardView(pull: pull)
-                        .transition(.scale(scale: 0.6).combined(with: .opacity))
-                        .animation(.easeInOut(duration: 0.25).delay(Double(index) * 0.08), value: isRevealed)
-                } else {
-                    cardBack
+            VStack(spacing: 4) {
+                Text(opening.pack.contentsText)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(AppTheme.ink)
+                if let era = opening.pack.eraName {
+                    Text("\(era) · \(opening.pack.releaseYearText ?? "")")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
-        }
-    }
 
-    private var cardBack: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(AppTheme.goldGradient)
-            .aspectRatio(0.72, contentMode: .fit)
-            .overlay {
-                Image(systemName: opening.pack.iconName)
-                    .font(.system(size: 30))
-                    .foregroundStyle(.white.opacity(0.85))
+            Button {
+                ripOpen()
+            } label: {
+                Label("Pack aufreißen", systemImage: "scissors")
             }
-            .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+            .buttonStyle(BrandButtonStyle())
+            .padding(.horizontal)
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
+                shine = true
+            }
+        }
     }
 
-    private var addButton: some View {
-        Button {
-            addAllToCollection()
-        } label: {
-            Label("Zur Sammlung hinzufügen", systemImage: "tray.and.arrow.down.fill")
+    private var shineSweep: some View {
+        GeometryReader { proxy in
+            let w = proxy.size.width
+            LinearGradient(
+                colors: [.clear, .white.opacity(0.35), .clear],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(width: w * 0.35, height: proxy.size.height * 1.6)
+            .rotationEffect(.degrees(18))
+            .offset(x: shine ? w * 1.0 : -w * 0.6)
+            .blendMode(.softLight)
+            .allowsHitTesting(false)
         }
-        .buttonStyle(BrandButtonStyle())
+        .frame(width: 240, height: 240 / 0.70)
+        .mask(BoosterPackArt(pack: opening.pack, width: 240))
+    }
+
+    // MARK: - Karte für Karte
+
+    private var revealArea: some View {
+        VStack(spacing: 14) {
+            if let current {
+                RevealCardView(pull: current)
+                    .id(revealedCount)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .opacity
+                    ))
+            }
+
+            HStack(spacing: 6) {
+                ForEach(0..<total, id: \.self) { index in
+                    Circle()
+                        .fill(index < revealedCount ? AppTheme.accent : Color.white.opacity(0.18))
+                        .frame(width: 7, height: 7)
+                }
+            }
+
+            Text("Karte \(revealedCount) von \(total)")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(AppTheme.textSecondary)
+
+            if !allRevealed {
+                HStack(spacing: 10) {
+                    Button {
+                        drawNext()
+                    } label: {
+                        Label("Nächste Karte", systemImage: "hand.tap.fill")
+                    }
+                    .buttonStyle(BrandButtonStyle())
+
+                    Button {
+                        revealAll()
+                    } label: {
+                        Label("Alle", systemImage: "forward.fill")
+                    }
+                    .buttonStyle(GlassButtonStyle())
+                }
+                .padding(.horizontal)
+            }
+        }
+        .animation(AppTheme.Motion.smooth, value: revealedCount)
+    }
+
+    private var drawnRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            PokedexSectionHeader(title: "Gezogen", systemImage: "rectangle.stack.fill")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(Array(pulls.enumerated()), id: \.element.id) { index, pull in
+                        Group {
+                            if index < revealedCount {
+                                PullThumb(pull: pull)
+                                    .transition(.scale.combined(with: .opacity))
+                            } else {
+                                LockedThumb(pack: opening.pack)
+                            }
+                        }
+                        .frame(width: 58)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+        .animation(AppTheme.Motion.bouncy, value: revealedCount)
+    }
+
+    // MARK: - Abschluss
+
+    private var footerActions: some View {
+        VStack(spacing: 12) {
+            if !hasAdded {
+                Button {
+                    addAllToCollection()
+                } label: {
+                    Label("Zur fiktiven Sammlung hinzufügen", systemImage: "tray.and.arrow.down.fill")
+                }
+                .buttonStyle(BrandButtonStyle())
+            }
+            if let addSummary {
+                Label(addSummary, systemImage: "checkmark.circle.fill")
+                    .font(.footnote)
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+            if hasAdded {
+                Button("Fertig") { dismiss() }
+                    .buttonStyle(.bordered)
+            }
+        }
         .padding(.horizontal)
+    }
+
+    // MARK: - Aktionen
+
+    private func ripOpen() {
+        withAnimation(AppTheme.Motion.bouncy) {
+            isRipped = true
+            revealedCount = min(1, total)
+        }
+    }
+
+    private func drawNext() {
+        guard !allRevealed else { return }
+        withAnimation(AppTheme.Motion.smooth) {
+            revealedCount += 1
+        }
+    }
+
+    private func revealAll() {
+        withAnimation(AppTheme.Motion.smooth) {
+            revealedCount = total
+        }
     }
 
     @MainActor
@@ -144,7 +267,7 @@ struct PackOpeningView: View {
         var merged = 0
         let notes = "Aus Pack geöffnet"
 
-        for pull in opening.pulls {
+        for pull in pulls {
             let brief = CardBrief(
                 id: pull.card.id,
                 name: pull.card.name,
@@ -152,7 +275,7 @@ struct PackOpeningView: View {
                 setName: pull.set.name,
                 localId: pull.card.localId,
                 rarity: nil,
-                imageURL: pull.card.highResURL
+                imageURL: pull.highResURL
             )
             let card = repository.findOrCreateCard(from: brief)
             if let existing = repository.existingItem(
@@ -165,7 +288,12 @@ struct PackOpeningView: View {
                 existing.quantity += 1
                 merged += 1
             } else {
-                let item = CollectionItem(quantity: 1, confirmedCondition: .nearMint, notes: notes)
+                let item = CollectionItem(
+                    quantity: 1,
+                    confirmedCondition: .nearMint,
+                    notes: notes,
+                    origin: .pack
+                )
                 repository.addCollectionItem(card: card, language: .de, printing: pull.printing, item: item)
                 added += 1
             }
@@ -178,7 +306,7 @@ struct PackOpeningView: View {
             return
         }
 
-        points.recordOpening(pack: opening.pack, pulls: opening.pulls)
+        points.recordOpening(pack: opening.pack, pulls: pulls)
         hasAdded = true
         let parts = [
             added > 0 ? "\(added) neue Karten" : nil,
@@ -189,44 +317,151 @@ struct PackOpeningView: View {
     }
 }
 
-/// Einzelne Ziehung mit Kartenbild, Name und Holo-Badge.
-private struct PullCardView: View {
+/// Große Karte in der Aufdeck-Phase mit Klapp-/Glanzanimation.
+private struct RevealCardView: View {
     let pull: PackPull
 
+    @State private var appeared = false
+
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 10) {
             ZStack {
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(Color.white.opacity(0.06))
-                AsyncImage(url: pull.card.thumbnailURL) { phase in
-                    if case .success(let image) = phase {
-                        image.resizable().scaledToFit()
+                if let url = pull.imageURL {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFit()
+                        case .failure:
+                            placeholder
+                        case .empty:
+                            ZStack {
+                                placeholder
+                                ProgressView()
+                            }
+                        @unknown default:
+                            placeholder
+                        }
                     }
+                } else {
+                    placeholder
                 }
             }
             .aspectRatio(0.72, contentMode: .fit)
+            .frame(maxWidth: 280)
             .overlay(alignment: .topTrailing) {
                 if pull.isHolo {
-                    Text("Holo")
-                        .font(.caption2.weight(.bold))
+                    Text("HOLO")
+                        .font(.caption2.weight(.heavy))
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
                         .background(AppTheme.goldGradient, in: Capsule())
-                        .padding(4)
+                        .padding(8)
                 }
             }
+            .shadow(color: pull.isHolo ? AppTheme.gold.opacity(0.5) : .black.opacity(0.4), radius: 18, y: 10)
+            .rotation3DEffect(.degrees(appeared ? 0 : 75), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+            .opacity(appeared ? 1 : 0)
 
-            Text(pull.card.name)
-                .font(.caption.weight(.semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .foregroundStyle(AppTheme.ink)
-            Text("#\(pull.card.localId) · \(pull.set.id)")
-                .font(.caption2)
+            VStack(spacing: 2) {
+                Text(pull.card.name)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(AppTheme.ink)
+                Text("#\(pull.card.localId) · \(pull.set.name)")
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.72)) {
+                appeared = true
+            }
+        }
+    }
+
+    private var placeholder: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+            Image(systemName: "rectangle.portrait.slash")
+                .font(.largeTitle)
                 .foregroundStyle(AppTheme.textSecondary)
         }
-        .surfaceCard(radius: AppTheme.cardRadiusSmall, padding: 6)
-        .card3D(maxTilt: 14, pressedScale: 1.05)
     }
+}
+
+/// Kleine aufgedeckte Karte in der Ziehungsleiste.
+private struct PullThumb: View {
+    let pull: PackPull
+
+    var body: some View {
+        VStack(spacing: 4) {
+            AsyncImage(url: pull.imageURL) { phase in
+                if case .success(let image) = phase {
+                    image.resizable().scaledToFit()
+                } else {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.white.opacity(0.08))
+                }
+            }
+            .aspectRatio(0.72, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(alignment: .topTrailing) {
+                if pull.isHolo {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(3)
+                        .background(AppTheme.goldGradient, in: Circle())
+                        .padding(2)
+                }
+            }
+            Text("#\(pull.card.localId)")
+                .font(.system(size: 9))
+                .foregroundStyle(AppTheme.textSecondary)
+                .lineLimit(1)
+        }
+    }
+}
+
+/// Noch nicht gezogene, verdeckte Karte.
+private struct LockedThumb: View {
+    let pack: PackDefinition
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 6)
+            .fill(AppTheme.gold.opacity(0.35))
+            .aspectRatio(0.72, contentMode: .fit)
+            .overlay {
+                Image(systemName: "questionmark")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+    }
+}
+
+#Preview {
+    PackOpeningView(
+        opening: PackOpening(
+            pack: PackDefinition(
+                id: "base1",
+                name: "Grundset",
+                cost: 100,
+                cardCount: 6,
+                holoGuarantee: 1,
+                iconName: "shippingbox",
+                setId: "base1",
+                setName: "Grundset",
+                serieId: "base",
+                eraName: "Klassik (Base & Co.)",
+                releaseYear: 1999,
+                logoURL: URL(string: "https://assets.tcgdex.net/en/base/base1/logo.webp")
+            ),
+            pulls: []
+        )
+    )
+    .environmentObject(PointsStore(defaults: UserDefaults(suiteName: "preview.opening")!))
+    .modelContainer(for: [Card.self, CardVariant.self, CollectionItem.self], inMemory: true)
 }
