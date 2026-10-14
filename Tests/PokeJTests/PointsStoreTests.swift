@@ -35,7 +35,7 @@ final class PointsStoreTests: XCTestCase {
         let defaults = UserDefaults(suiteName: "test.poor")!
         defaults.removePersistentDomain(forName: "test.poor")
         let store = PointsStore(defaults: defaults)
-        let expensive = PackDefinition(id: "x", name: "X", cost: 10_000, cardCount: 1, holoGuarantee: 0, iconName: "x")
+        let expensive = PackDefinition(id: "x", name: "X", cost: PointsStore.startingBalance + 1, cardCount: 1, holoGuarantee: 0, iconName: "x")
         XCTAssertFalse(store.canAfford(expensive))
         XCTAssertFalse(store.purchase(expensive))
     }
