@@ -5,9 +5,10 @@ import VisionKit
 /// Kamera-Scanner auf Basis von `VNDocumentCameraViewController`.
 ///
 /// Der Dokumentenscanner erkennt die Kartenkanten und führt bereits eine
-/// Perspektivkorrektur durch.
+/// Perspektivkorrektur durch. Er kann mehrere Seiten (Karten) pro Aufnahme
+/// liefern; alle Seiten werden an den Aufrufer übergeben.
 struct DocumentScannerView: UIViewControllerRepresentable {
-    let onComplete: (UIImage) -> Void
+    let onComplete: ([UIImage]) -> Void
     let onCancel: () -> Void
 
     func makeUIViewController(context: Context) -> VNDocumentCameraViewController {
@@ -23,10 +24,10 @@ struct DocumentScannerView: UIViewControllerRepresentable {
     }
 
     final class Coordinator: NSObject, VNDocumentCameraViewControllerDelegate {
-        private let onComplete: (UIImage) -> Void
+        private let onComplete: ([UIImage]) -> Void
         private let onCancel: () -> Void
 
-        init(onComplete: @escaping (UIImage) -> Void, onCancel: @escaping () -> Void) {
+        init(onComplete: @escaping ([UIImage]) -> Void, onCancel: @escaping () -> Void) {
             self.onComplete = onComplete
             self.onCancel = onCancel
         }
@@ -35,11 +36,12 @@ struct DocumentScannerView: UIViewControllerRepresentable {
             _ controller: VNDocumentCameraViewController,
             didFinishWith scan: VNDocumentCameraScan
         ) {
-            if scan.pageCount > 0 {
-                onComplete(scan.imageOfPage(at: 0))
-            } else {
+            guard scan.pageCount > 0 else {
                 onCancel()
+                return
             }
+            let images = (0..<scan.pageCount).map { scan.imageOfPage(at: $0) }
+            onComplete(images)
         }
 
         func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {

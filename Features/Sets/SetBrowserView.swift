@@ -6,6 +6,7 @@ struct SetBrowserView: View {
     @State private var searchMode: SearchMode = .number
 
     private let allSets = PokemonCatalog.sets
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
 
     private var visibleSets: [CatalogSet] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -35,12 +36,12 @@ struct SetBrowserView: View {
                     ContentUnavailableView.search(text: searchText)
                 } else {
                     ScrollView {
-                        LazyVStack(spacing: 12) {
+                        LazyVGrid(columns: columns, spacing: 10) {
                             ForEach(visibleSets) { set in
                                 NavigationLink {
                                     SetDetailView(set: set)
                                 } label: {
-                                    SetSummaryRow(set: set)
+                                    SetGridCell(set: set)
                                 }
                                 .buttonStyle(PressableCardStyle())
                             }
@@ -74,45 +75,54 @@ struct SetBrowserView: View {
     }
 }
 
-private struct SetSummaryRow: View {
+private struct SetGridCell: View {
     let set: CatalogSet
 
+    private var thumbnailURL: URL? {
+        set.cards.first(where: { $0.image != nil })?.thumbnailURL
+    }
+
     var body: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(AppTheme.goldGradient)
-                    .frame(width: 54, height: 54)
-                if let url = set.cards.first(where: { $0.image != nil })?.thumbnailURL {
-                    AsyncImage(url: url) { image in
-                        image.resizable().scaledToFit()
-                    } placeholder: {
-                        Image(systemName: "rectangle.stack.fill")
-                            .font(.title3)
-                            .foregroundStyle(.white)
-                    }
-                    .frame(width: 44, height: 44)
-                } else {
-                    Image(systemName: "rectangle.stack.fill")
-                        .font(.title3)
-                        .foregroundStyle(.white)
+        VStack(spacing: 6) {
+            AsyncImage(url: thumbnailURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFit()
+                case .failure:
+                    placeholder
+                case .empty:
+                    ZStack { placeholder; ProgressView() }
+                @unknown default:
+                    placeholder
                 }
             }
-            VStack(alignment: .leading, spacing: 3) {
-                Text(set.name)
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(AppTheme.ink)
-                Text("\(set.cards.count) Karten · \(set.id)")
-                    .font(.caption)
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.footnote)
+            .aspectRatio(0.72, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            Text(set.name)
+                .font(.caption2.weight(.semibold))
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(AppTheme.ink)
+                .frame(maxWidth: .infinity)
+
+            Text("\(set.cards.count)")
+                .font(.caption2)
                 .foregroundStyle(AppTheme.textSecondary)
         }
-        .surfaceCard(padding: 12)
+        .surfaceCard(radius: AppTheme.cardRadiusSmall, padding: 6)
         .card3D(maxTilt: 8)
+    }
+
+    private var placeholder: some View {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(AppTheme.goldGradient)
+            .aspectRatio(0.72, contentMode: .fit)
+            .overlay {
+                Image(systemName: "rectangle.stack.fill")
+                    .font(.title3)
+                    .foregroundStyle(.white)
+            }
     }
 }
 

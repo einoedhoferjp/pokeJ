@@ -12,6 +12,11 @@ final class AuthServiceTests: XCTestCase {
         XCTAssertNotNil(AuthService.verify(username: "Pokefan", password: "pikachu"))
         XCTAssertNotNil(AuthService.verify(username: " test ", password: "test"))
         XCTAssertNotNil(AuthService.verify(username: "sammler", password: "glueckspilz"))
+        XCTAssertNotNil(AuthService.verify(username: "berli", password: "test123"))
+    }
+
+    func testVerifyRejectsWrongPasswordForBerli() {
+        XCTAssertNil(AuthService.verify(username: "berli", password: "falsch"))
     }
 
     func testVerifyRejectsWrongPasswordAndUnknownUser() {

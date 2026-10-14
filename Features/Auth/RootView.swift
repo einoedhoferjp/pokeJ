@@ -9,6 +9,8 @@ struct RootView: View {
         Group {
             if auth.isAuthenticated {
                 TabView {
+                    HomeView()
+                        .tabItem { Label("Start", systemImage: "house.fill") }
                     LibraryView()
                         .tabItem { Label("Sammlung", systemImage: "rectangle.stack.fill") }
                     PackShopView()

@@ -31,6 +31,20 @@ struct LibraryView: View {
         filter.apply(to: items)
     }
 
+    private var isScannerPresented: Binding<Bool> {
+        Binding(
+            get: { activeSheet == .scanner },
+            set: { if !$0 { activeSheet = nil } }
+        )
+    }
+
+    private var isAddPresented: Binding<Bool> {
+        Binding(
+            get: { activeSheet == .add },
+            set: { if !$0 { activeSheet = nil } }
+        )
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -116,13 +130,11 @@ struct LibraryView: View {
                     }
                 }
             }
-            .sheet(item: $activeSheet) { sheet in
-                switch sheet {
-                case .scanner:
-                    ScannerView()
-                case .add:
-                    AddEditCardView(mode: .add)
-                }
+            .fullScreenCover(isPresented: isScannerPresented) {
+                ScannerView()
+            }
+            .sheet(isPresented: isAddPresented) {
+                AddEditCardView(mode: .add)
             }
             .onAppear {
                 SeedLoader.seedIfNeeded(in: context)
@@ -217,8 +229,8 @@ struct LibraryView: View {
 
     // MARK: - Preise
 
-    private var totalQuantity: Int {
-        items.reduce(0) { $0 + $1.quantity }
+    private var collectionValue: CollectionValue {
+        CollectionStats.value(items: items, snapshots: allSnapshots)
     }
 
     @ViewBuilder
@@ -280,37 +292,8 @@ struct LibraryView: View {
         .padding(.vertical, 8)
     }
 
-    private var pointsByProduct: [String: [PricePoint]] {
-        Dictionary(grouping: allSnapshots, by: { $0.cardmarketProductId }).mapValues { snapshots in
-            snapshots.map {
-                PricePoint(
-                    productId: $0.cardmarketProductId,
-                    metric: $0.metric,
-                    amount: $0.amount,
-                    currency: $0.currency,
-                    fetchedAt: $0.fetchedAt,
-                    source: $0.source,
-                    matchQuality: $0.matchQuality
-                )
-            }
-        }
-    }
-
-    private var collectionValue: CollectionValue {
-        let now = Date()
-        let valued = items.map { item -> ValuedItem in
-            let printing = item.variant?.printing ?? .normal
-            let points = item.variant?.cardmarketProductId.flatMap { pointsByProduct[$0] } ?? []
-            let latest = PriceResolver.latest(points: points, printing: printing)
-            let stale = latest.map { PriceFreshness.isStale(fetchedAt: $0.fetchedAt, now: now) } ?? false
-            return ValuedItem(
-                unitPrice: latest?.amount,
-                quantity: item.quantity,
-                isStale: stale,
-                currency: latest?.currency ?? "EUR"
-            )
-        }
-        return CollectionValueCalculator.compute(items: valued)
+    private var totalQuantity: Int {
+        items.reduce(0) { $0 + $1.quantity }
     }
 
     @MainActor
