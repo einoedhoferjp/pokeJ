@@ -79,7 +79,7 @@ private struct SetGridCell: View {
     let set: CatalogSet
 
     private var thumbnailURL: URL? {
-        set.cards.first(where: { $0.image != nil })?.thumbnailURL
+        return set.cards.first(where: { $0.image != nil })?.thumbnailURL
     }
 
     var body: some View {

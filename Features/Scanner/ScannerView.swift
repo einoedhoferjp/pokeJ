@@ -58,7 +58,7 @@ struct ScannerView: View {
         let pageId: UUID
     }
 
-    private struct AddTarget: Identifiable {
+    private enum AddTarget: Identifiable {
         case fresh
         case candidate(CardBrief)
 
