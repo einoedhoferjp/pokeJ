@@ -3,8 +3,9 @@ import UIKit
 
 /// Zentrale Design-Tokens der App.
 ///
-/// Ausrichtung: **dunkles Design** mit kräftiger Typografie, interaktiven
-/// 3D-Elementen, Motion und klaren Grid-Layouts.
+/// Ausrichtung: **modern, schlicht, glossy**. Dunkles Midnight-Purple Basis-
+/// Design mit glänzenden Kartenoberflächen, sanften Verläufen und klaren
+/// Grid-Elementen.
 enum AppTheme {
     // MARK: - Markenfarben
 
@@ -13,32 +14,35 @@ enum AppTheme {
     /// Pokémon-Gelb für Akzente/Badges.
     static let gold = Color(red: 0.98, green: 0.78, blue: 0.16)
     /// Helle Schrift-/Icon-Farbe, midnight-purple getönt.
-    static let ink = Color(red: 0.93, green: 0.91, blue: 0.99)
-    /// Kartenfläche.
+    static let ink = Color(red: 0.96, green: 0.94, blue: 1.0)
+    /// Kartenoberfläche (glossy Base).
     static let surface = elevated
 
     // MARK: - Dunkle Palette
 
-    /// Hintergrund ganz oben (fast schwarz, leicht violett).
-    static let backgroundTop = Color(red: 0.07, green: 0.06, blue: 0.11)
-    /// Hintergrund ganz unten (midnight purple).
-    static let backgroundBottom = Color(red: 0.12, green: 0.09, blue: 0.19)
+    /// Hintergrund ganz oben (tiefes Midnight-Purple).
+    static let backgroundTop = Color(red: 0.05, green: 0.04, blue: 0.08)
+    /// Hintergrund ganz unten (sanftes Violett-Schwarz).
+    static let backgroundBottom = Color(red: 0.09, green: 0.07, blue: 0.14)
     /// Erhöhte Flächen (Karten, Chips).
-    static let elevated = Color(red: 0.14, green: 0.12, blue: 0.23)
-    /// Etwas hellere erhöhte Fläche.
-    static let elevatedAlt = Color(red: 0.19, green: 0.16, blue: 0.30)
+    static let elevated = Color(red: 0.13, green: 0.11, blue: 0.20)
+    /// Etwas hellere erhöhte Fläche für Sekundärebenen.
+    static let elevatedAlt = Color(red: 0.17, green: 0.14, blue: 0.26)
     /// Feine Rahmenfarbe.
-    static let stroke = Color.white.opacity(0.08)
-    /// Primärer Text (helles Lavendel).
-    static let textPrimary = Color(red: 0.93, green: 0.92, blue: 0.99)
+    static let stroke = Color.white.opacity(0.10)
+    /// Glanz-Overlay für glossy Kartenoberflächen.
+    static let glossHighlight = Color.white.opacity(0.18)
+    /// Primärer Text (helles Lavendel-Weiß).
+    static let textPrimary = Color(red: 0.96, green: 0.94, blue: 1.0)
     /// Sekundärer Text (gedämpftes Violett).
     static let textSecondary = Color(red: 0.65, green: 0.61, blue: 0.78)
 
     // MARK: - Geometrie
 
-    static let cardRadius: CGFloat = 18
-    static let gridSpacing: CGFloat = 14
-    static let controlRadius: CGFloat = 14
+    static let cardRadius: CGFloat = 20
+    static let gridSpacing: CGFloat = 16
+    static let controlRadius: CGFloat = 16
+    static let smallCardRadius: CGFloat = 12
 
     // MARK: - Verläufe
 
@@ -67,10 +71,23 @@ enum AppTheme {
         )
     }
 
+    /// Glossy-Kartenverlauf: heller Glanz oben, sanft abdunkelnd unten.
+    static var glossyCardGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(0.20),
+                Color.white.opacity(0.05),
+                Color.black.opacity(0.10)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
     /// Dezente Lichtkante für erhöhte Flächen.
     static var surfaceStroke: LinearGradient {
         LinearGradient(
-            colors: [Color.white.opacity(0.14), Color.white.opacity(0.02)],
+            colors: [Color.white.opacity(0.16), Color.white.opacity(0.02)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -92,11 +109,11 @@ enum AppTheme {
     /// Wiederverwendbare Animationskurven für konsistentes Motion-Design.
     enum Motion {
         /// Schnelle Reaktion (Press, Auswahl).
-        static let snappy = Animation.spring(response: 0.30, dampingFraction: 0.72)
+        static let snappy = Animation.spring(response: 0.28, dampingFraction: 0.74)
         /// Weiche Übergänge (Auftauchen, Layout).
-        static let smooth = Animation.spring(response: 0.50, dampingFraction: 0.86)
+        static let smooth = Animation.spring(response: 0.48, dampingFraction: 0.88)
         /// Federnd (Belohnungen, Highlights).
-        static let bouncy = Animation.spring(response: 0.42, dampingFraction: 0.62)
+        static let bouncy = Animation.spring(response: 0.40, dampingFraction: 0.64)
     }
 
     // MARK: - Kamera

@@ -181,7 +181,18 @@ struct AddEditCardView: View {
         }
         try? await Task.sleep(nanoseconds: 250_000_000)
         if Task.isCancelled { return }
-        let request = CardQuery(text: text, language: language)
+
+        // Reine Nummer (z. B. "4", "04", "SV123-5") → über localId suchen,
+        // sonst über Namen. Beide Felder dürfen gleichzeitig übergeben werden.
+        let looksLikeNumber = text.rangeOfCharacter(from: CharacterSet.decimalDigits) != nil
+            && text.rangeOfCharacter(from: CharacterSet.letters) == nil
+
+        let request: CardQuery
+        if looksLikeNumber {
+            request = CardQuery(text: "", localId: text, language: language)
+        } else {
+            request = CardQuery(text: text, language: language)
+        }
         results = (try? await provider.searchCards(request)) ?? []
     }
 

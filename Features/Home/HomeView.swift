@@ -197,7 +197,7 @@ struct HomeView: View {
                 StatTile(icon: "shippingbox.fill", value: "\(CollectionStats.totalQuantity(realItems))", label: "Karten")
                 StatTile(icon: "rectangle.stack.fill", value: "\(CollectionStats.uniqueCardCount(realItems))", label: "Verschiedene Karten")
                 StatTile(icon: "square.grid.2x2.fill", value: "\(CollectionStats.setCount(realItems))", label: "Sets")
-                StatTile(icon: "sparkles", value: "\(fictionalQuantity)", label: "Fiktive Karten")
+                StatTile(icon: "sparkles", value: "\(fictionalQuantity)", label: "PokeJ-Karten")
                 StatTile(icon: "point.3.connected.trianglepath.dotted", value: "\(points.balance)", label: "Punkte")
             }
         }

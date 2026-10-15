@@ -6,7 +6,7 @@ struct CollectionItemCard: View {
     private var card: Card? { item.variant?.card }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             imageView
             Text(card?.name ?? "Unbekannt")
                 .font(.headline.weight(.bold))
@@ -16,12 +16,12 @@ struct CollectionItemCard: View {
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
                 .lineLimit(1)
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Text(item.confirmedCondition.displayName)
                     .font(.caption2.weight(.semibold))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(AppTheme.accent.opacity(0.18), in: Capsule())
+                    .background(AppTheme.accent.opacity(0.20), in: Capsule())
                     .foregroundStyle(AppTheme.accent)
                 Spacer(minLength: 0)
                 if item.quantity > 1 {
@@ -31,7 +31,7 @@ struct CollectionItemCard: View {
                 }
             }
         }
-        .surfaceCard()
+        .glossyCard()
         .card3D()
     }
 
@@ -46,34 +46,89 @@ struct CollectionItemCard: View {
     }
 
     private var imageView: some View {
-        AsyncImage(url: card?.imageURL) { phase in
-            switch phase {
-            case .success(let image):
-                image.resizable().scaledToFit()
-            case .failure:
-                placeholder(systemName: "photo.badge.exclamationmark")
-            case .empty:
-                ZStack {
-                    placeholder(systemName: "photo")
-                    ProgressView()
+        ZStack {
+            if let url = card?.imageURL {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                    case .failure:
+                        placeholder
+                    case .empty:
+                        ZStack {
+                            placeholder
+                            ProgressView()
+                        }
+                    @unknown default:
+                        placeholder
+                    }
                 }
-            @unknown default:
-                placeholder(systemName: "photo")
+            } else {
+                placeholder
             }
+            glossOverlay
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(0.72, contentMode: .fit)
-        .background(Color.black.opacity(0.25), in: RoundedRectangle(cornerRadius: AppTheme.cardRadiusSmall))
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadiusSmall))
+        .background(Color.black.opacity(0.30), in: RoundedRectangle(cornerRadius: AppTheme.smallCardRadius))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.smallCardRadius))
     }
 
-    private func placeholder(systemName: String) -> some View {
+    /// Glossy-Glanz-Overlay für moderne Kartenoberfläche.
+    private var glossOverlay: some View {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(0.30),
+                Color.white.opacity(0.05),
+                Color.black.opacity(0.15)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.smallCardRadius))
+        .blendMode(.overlay)
+        .allowsHitTesting(false)
+    }
+
+    private var placeholder: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: AppTheme.cardRadiusSmall)
-                .fill(Color.white.opacity(0.06))
-            Image(systemName: systemName)
+            RoundedRectangle(cornerRadius: AppTheme.smallCardRadius)
+                .fill(Color.white.opacity(0.08))
+            RoundedRectangle(cornerRadius: AppTheme.smallCardRadius)
+                .strokeBorder(AppTheme.stroke, lineWidth: 1)
+            Image(systemName: "photo")
                 .font(.largeTitle)
                 .foregroundStyle(AppTheme.textSecondary)
         }
+    }
+}
+
+/// Glossy-Karten-Container mit sanftem Glanz und Tiefe.
+private struct GlossyCardModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(8)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                    .fill(AppTheme.elevated)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                            .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+                    )
+                    .overlay(AppTheme.glossyCardGradient
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+                        .blendMode(.overlay)
+                        .opacity(0.5)
+                    )
+            )
+            .shadow(color: .black.opacity(0.45), radius: 16, y: 10)
+    }
+}
+
+extension View {
+    func glossyCard() -> some View {
+        modifier(GlossyCardModifier())
     }
 }

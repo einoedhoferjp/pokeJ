@@ -28,7 +28,7 @@ struct RootView: View {
                     PackShopView()
                         .tabItem { Label("Packs", systemImage: "gift.fill") }
                     FictionalCollectionView()
-                        .tabItem { Label("Fiktiv", systemImage: "sparkles") }
+                        .tabItem { Label("PokeJ", systemImage: "sparkles") }
                     SetBrowserView()
                         .tabItem { Label("Sets", systemImage: "square.grid.2x2.fill") }
                 }

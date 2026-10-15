@@ -14,11 +14,18 @@ struct PackPull: Identifiable, Hashable, Sendable {
     var imageURL: URL? {
         card.thumbnailURL
             ?? SetArtworkCatalog.artwork(for: set.id)?.englishImageURL(localId: card.localId, highResolution: false)
+            ?? fallbackTCGdexImageURL()
     }
 
     var highResURL: URL? {
         card.highResURL
             ?? SetArtworkCatalog.artwork(for: set.id)?.englishImageURL(localId: card.localId, highResolution: true)
+            ?? fallbackTCGdexImageURL(highResolution: true)
+    }
+
+    private func fallbackTCGdexImageURL(highResolution: Bool = false) -> URL? {
+        let suffix = highResolution ? "/high.webp" : "/low.webp"
+        return URL(string: "https://images.tcgdex.net/de/cards/\(set.id)-\(card.localId)\(suffix)")
     }
 }
 

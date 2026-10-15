@@ -33,9 +33,9 @@ struct FictionalCollectionView: View {
             Group {
                 if items.isEmpty {
                     ContentUnavailableView(
-                        "Noch keine fiktiven Karten",
+                        "Noch keine PokeJ-Karten",
                         systemImage: "sparkles",
-                        description: Text("Öffne Booster im Packs-Tab, um deine fiktive Sammlung zu füllen.")
+                        description: Text("Öffne Booster im Packs-Tab, um deine PokeJ-Sammlung zu füllen.")
                     )
                 } else if visibleItems.isEmpty {
                     ContentUnavailableView(
@@ -47,7 +47,7 @@ struct FictionalCollectionView: View {
                     content
                 }
             }
-            .navigationTitle("Fiktiv")
+            .navigationTitle("PokeJ")
             .searchable(text: $searchText, prompt: "Name oder Set")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -103,7 +103,7 @@ struct FictionalCollectionView: View {
 
     private var statsGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
-            PokedexSectionHeader(title: "Fiktive Sammlung", systemImage: "sparkles")
+            PokedexSectionHeader(title: "PokeJ-Sammlung", systemImage: "sparkles")
             LazyVGrid(
                 columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
                 spacing: 12

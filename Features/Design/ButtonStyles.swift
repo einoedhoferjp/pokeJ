@@ -4,34 +4,47 @@ import SwiftUI
 struct PressableCardStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
-            .opacity(configuration.isPressed ? 0.9 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
-    }
-}
-
-/// Prominenter Aktionsbutton im App-Farbschema mit 3D-Druckeffekt.
-struct BrandButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.headline)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity)
-            .background(AppTheme.brandGradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.25), lineWidth: 1)
-            )
-            .shadow(color: AppTheme.accent.opacity(configuration.isPressed ? 0.15 : 0.45), radius: configuration.isPressed ? 3 : 12, y: configuration.isPressed ? 1 : 7)
             .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .brightness(configuration.isPressed ? -0.04 : 0)
+            .opacity(configuration.isPressed ? 0.92 : 1)
             .animation(AppTheme.Motion.snappy, value: configuration.isPressed)
     }
 }
 
-/// Flacher, tiefenglätter „Glass"-Button für sekundäre Aktionen.
+/// Prominenter Aktionsbutton im App-Farbschema mit glossy 3D-Druckeffekt.
+struct BrandButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                    .fill(AppTheme.brandGradient)
+                    .overlay(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.35), Color.clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                        .blendMode(.overlay)
+                        .opacity(0.5)
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.30), lineWidth: 1)
+            )
+            .shadow(color: AppTheme.accent.opacity(configuration.isPressed ? 0.20 : 0.50),
+                    radius: configuration.isPressed ? 4 : 14, y: configuration.isPressed ? 2 : 10)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(AppTheme.Motion.snappy, value: configuration.isPressed)
+    }
+}
+
+/// Flacher, glossy „Glass"-Button für sekundäre Aktionen.
 struct GlassButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -39,9 +52,16 @@ struct GlassButtonStyle: ButtonStyle {
             .foregroundStyle(AppTheme.ink)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(AppTheme.elevated, in: Capsule())
+            .background(
+                Capsule()
+                    .fill(AppTheme.elevatedAlt)
+                    .overlay(AppTheme.glossyCardGradient
+                        .clipShape(Capsule())
+                        .blendMode(.overlay)
+                        .opacity(0.4))
+            )
             .overlay(Capsule().strokeBorder(AppTheme.surfaceStroke, lineWidth: 1))
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(AppTheme.Motion.snappy, value: configuration.isPressed)
     }
 }

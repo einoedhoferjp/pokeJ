@@ -18,6 +18,7 @@ struct PackOpeningView: View {
     let opening: PackOpening
 
     @State private var isRipped = false
+    @State private var ripProgress: CGFloat = 0
     @State private var revealedCount = 0
     @State private var hasAdded = false
     @State private var addSummary: String?
@@ -85,17 +86,34 @@ struct PackOpeningView: View {
 
     private var sealedPack: some View {
         VStack(spacing: 18) {
-            Text("Fiktives Booster")
+            Text("PokeJ Booster")
                 .font(.caption.weight(.semibold))
                 .tracking(1.4)
                 .foregroundStyle(AppTheme.textSecondary)
 
             ZStack {
-                BoosterPackArt(pack: opening.pack, width: 240)
+                BoosterPackArt(pack: opening.pack, width: 260)
                 shineSweep
+                ripOverlay
             }
             .scaleEffect(shine ? 1.02 : 1.0)
             .animation(AppTheme.Motion.bouncy, value: shine)
+            .gesture(
+                DragGesture(minimumDistance: 10)
+                    .onChanged { value in
+                        let progress = min(max(value.translation.height / 120, 0), 1)
+                        ripProgress = progress
+                    }
+                    .onEnded { value in
+                        if ripProgress >= 0.55 {
+                            ripOpen()
+                        } else {
+                            withAnimation(AppTheme.Motion.smooth) {
+                                ripProgress = 0
+                            }
+                        }
+                    }
+            )
 
             VStack(spacing: 4) {
                 Text(opening.pack.contentsText)
@@ -108,19 +126,43 @@ struct PackOpeningView: View {
                 }
             }
 
-            Button {
-                ripOpen()
-            } label: {
-                Label("Pack aufreißen", systemImage: "scissors")
+            if ripProgress > 0 {
+                Text("Nach unten wischen, um aufzureißen")
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.textSecondary)
+            } else {
+                Button {
+                    ripOpen()
+                } label: {
+                    Label("Pack aufreißen", systemImage: "hand.draw")
+                }
+                .buttonStyle(BrandButtonStyle())
+                .padding(.horizontal)
             }
-            .buttonStyle(BrandButtonStyle())
-            .padding(.horizontal)
         }
         .onAppear {
             withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
                 shine = true
             }
         }
+    }
+
+    /// Riss-Overlay über dem Pack, wächst mit der Wisch-Geste.
+    private var ripOverlay: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 260 * 0.10, style: .continuous)
+                .stroke(AppTheme.gold, lineWidth: 3)
+                .opacity(ripProgress)
+                .scaleEffect(1.0 + ripProgress * 0.15, anchor: .center)
+            if ripProgress > 0.3 {
+                Text("✂")
+                    .font(.system(size: 32))
+                    .foregroundStyle(AppTheme.gold)
+                    .offset(y: 260 * 0.35 * ripProgress)
+            }
+        }
+        .allowsHitTesting(false)
+        .animation(AppTheme.Motion.snappy, value: ripProgress)
     }
 
     private var shineSweep: some View {
@@ -137,8 +179,8 @@ struct PackOpeningView: View {
             .blendMode(.softLight)
             .allowsHitTesting(false)
         }
-        .frame(width: 240, height: 240 / 0.70)
-        .mask(BoosterPackArt(pack: opening.pack, width: 240))
+        .frame(width: 260, height: 260 / 0.70)
+        .mask(BoosterPackArt(pack: opening.pack, width: 260))
     }
 
     // MARK: - Karte für Karte
@@ -219,7 +261,7 @@ struct PackOpeningView: View {
                 Button {
                     addAllToCollection()
                 } label: {
-                    Label("Zur fiktiven Sammlung hinzufügen", systemImage: "tray.and.arrow.down.fill")
+                    Label("Zur PokeJ-Sammlung hinzufügen", systemImage: "tray.and.arrow.down.fill")
                 }
                 .buttonStyle(BrandButtonStyle())
             }
