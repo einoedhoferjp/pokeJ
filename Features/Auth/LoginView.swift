@@ -34,37 +34,36 @@ struct LoginView: View {
 
     var body: some View {
         ZStack {
-            AppTheme.brandGradient
-                .ignoresSafeArea()
+            AppTheme.appBackground.ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 28) {
                     header
                     authCard
                     if mode == .login { demoHintCard }
                 }
                 .padding(24)
                 .frame(maxWidth: 480)
-                .frame(maxWidth: .infinity)
             }
             .scrollDismissesKeyboard(.interactively)
         }
     }
 
     private var header: some View {
-        VStack(spacing: 12) {
-            BrandLogo(size: 92)
+        VStack(spacing: 14) {
+            BrandLogo(size: 88)
             Text("PokéJ")
-                .font(.largeTitle.bold())
-                .foregroundStyle(.white)
+                .font(.largeTitle.weight(.heavy))
+                .foregroundStyle(AppTheme.ink)
             Text("Kartenscanner & Sammlung")
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(AppTheme.textSecondary)
         }
+        .padding(.top, 40)
     }
 
     private var authCard: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 18) {
             Picker("Modus", selection: $mode) {
                 ForEach(Mode.allCases) { mode in
                     Text(mode.title).tag(mode)
@@ -111,6 +110,7 @@ struct LoginView: View {
 
             Toggle("Passwort anzeigen", isOn: $showPassword)
                 .font(.footnote)
+                .toggleStyle(ModernToggleStyle())
 
             if mode == .register {
                 Text("Deine Sammlung und Punkte werden lokal für dieses Konto gespeichert.")
@@ -121,66 +121,81 @@ struct LoginView: View {
 
             if let errorMessage {
                 Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                    .font(.footnote)
-                    .foregroundStyle(AppTheme.gold)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.red)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 4)
             }
 
             Button {
                 submit()
             } label: {
                 Label(mode == .login ? "Anmelden" : "Konto erstellen", systemImage: "arrow.right.circle.fill")
+                    .font(.headline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
             }
             .buttonStyle(BrandButtonStyle())
             .disabled(!canSubmit)
             .opacity(canSubmit ? 1 : 0.5)
         }
-        .padding(20)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .padding(22)
+        .background(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(AppTheme.elevated)
+                .overlay(AppTheme.glossyCardGradient
+                    .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    .blendMode(.overlay)
+                    .opacity(0.4))
+        )
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.3), radius: 22, y: 12)
-        .card3D(maxTilt: 6, pressedScale: 1.01)
+        .shadow(color: .black.opacity(0.35), radius: 24, y: 12)
+        .card3D(maxTilt: 5, pressedScale: 1.01)
     }
 
     private var demoHintCard: some View {
         DisclosureGroup {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 ForEach(AuthService.demoHint, id: \.username) { hint in
                     HStack {
                         Text(hint.username)
                             .fontWeight(.semibold)
+                            .foregroundStyle(AppTheme.ink)
                         Spacer()
                         Text(hint.password)
                             .monospaced()
+                            .foregroundStyle(AppTheme.textSecondary)
                     }
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.9))
                 }
             }
             .padding(.top, 8)
         } label: {
             Label("Demo-Konten", systemImage: "person.2.fill")
                 .font(.footnote.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(AppTheme.textSecondary)
         }
         .padding(16)
-        .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(AppTheme.stroke, lineWidth: 1))
     }
 
     private func field<Content: View>(icon: String, @ViewBuilder content: () -> Content) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .foregroundStyle(AppTheme.accent)
-                .frame(width: 22)
-            content()
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .foregroundStyle(AppTheme.accent)
+                    .frame(width: 22)
+                content()
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 14)
+            .background(AppTheme.elevatedAlt, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(AppTheme.stroke, lineWidth: 1))
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(AppTheme.elevated, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(AppTheme.surfaceStroke, lineWidth: 1))
     }
 
     private func submit() {

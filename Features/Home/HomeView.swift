@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// Startseite: Dashboard über die eigene Sammlung mit großer Scan-Aktion.
+/// Startseite: Dashboard mit großer Scan-Aktion im Mittelpunkt.
 struct HomeView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.priceProvider) private var priceProvider
@@ -12,7 +12,6 @@ struct HomeView: View {
     @Query(sort: \PriceSnapshot.fetchedAt, order: .reverse) private var snapshots: [PriceSnapshot]
     @Query(sort: \ScanRecord.timestamp, order: .reverse) private var scans: [ScanRecord]
 
-    /// Nur real erfasste Karten – fiktive Booster-Karten zählen hier nicht.
     private var realItems: [CollectionItem] {
         items.filter { $0.origin == .scanned }
     }
@@ -25,13 +24,14 @@ struct HomeView: View {
     @State private var showAdd = false
     @State private var isRefreshing = false
     @State private var refreshNote: String?
+    @State private var animateScanButton = false
 
     private let statColumns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 20) {
                     brandHeader
                     scanCallToAction
                     valueCard
@@ -40,9 +40,13 @@ struct HomeView: View {
                     if !realItems.isEmpty { recentCards }
                     recentScans
                 }
-                .padding()
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 30)
             }
+            .background(AppTheme.appBackground.ignoresSafeArea())
             .navigationTitle("Start")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
@@ -72,12 +76,13 @@ struct HomeView: View {
                         }
                     } label: {
                         Label("Konto", systemImage: "person.crop.circle")
+                            .font(.headline)
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Label("\(points.balance) P", systemImage: "point.3.connected.trianglepath.dotted")
                         .labelStyle(.titleAndIcon)
-                        .padding(.horizontal, 8)
+                        .padding(.horizontal, 10)
                         .padding(.vertical, 6)
                         .background(Color.secondary.opacity(0.12), in: Capsule())
                         .font(.caption)
@@ -87,25 +92,27 @@ struct HomeView: View {
             .toolbarBackground(AppTheme.backgroundTop, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
-            .background(AppTheme.appBackground.ignoresSafeArea())
+            .fullScreenCover(isPresented: $showScanner) {
+                ScannerView()
+            }
+            .sheet(isPresented: $showAdd) {
+                AddEditCardView(mode: .add)
+            }
+            .onAppear {
+                SeedLoader.bootstrap(in: context)
+                withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                    animateScanButton = true
+                }
+            }
+            .task { await autoRefreshIfDue() }
         }
-        .fullScreenCover(isPresented: $showScanner) {
-            ScannerView()
-        }
-        .sheet(isPresented: $showAdd) {
-            AddEditCardView(mode: .add)
-        }
-        .onAppear {
-            SeedLoader.bootstrap(in: context)
-        }
-        .task { await autoRefreshIfDue() }
     }
 
     // MARK: - Bausteine
 
     private var brandHeader: some View {
-        HStack(spacing: 12) {
-            BrandLogo(size: 52)
+        HStack(spacing: 14) {
+            BrandLogo(size: 56)
             VStack(alignment: .leading, spacing: 2) {
                 Text("PokéJ")
                     .font(.title2.weight(.heavy))
@@ -116,105 +123,192 @@ struct HomeView: View {
             }
             Spacer()
         }
+        .padding(.top, 4)
     }
 
+    /// Großer Scan-Button als zentrales Element – immer gut erreichbar.
     private var scanCallToAction: some View {
-        PokedexPanel(title: "Scanner", statusLED: AppTheme.ledGreen) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Erfasse deine Karten mit der Kamera – direkt in die Sammlung.")
-                    .font(.caption)
-                    .foregroundStyle(AppTheme.textSecondary)
-                Button {
-                    showScanner = true
-                } label: {
-                    Label("Karte scannen", systemImage: "camera.viewfinder")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Karte scannen")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(AppTheme.ink)
+            Text("Fotografiere deine Pokémon-Karte – PokéJ erkennt sie automatisch.")
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textSecondary)
+                .lineLimit(2)
+
+            Button {
+                showScanner = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "camera.viewfinder")
+                        .font(.title2.weight(.semibold))
+                    Text("Jetzt scannen")
+                        .font(.headline.weight(.semibold))
                 }
-                .buttonStyle(BrandButtonStyle())
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                        .fill(AppTheme.brandGradient)
+                        .overlay(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.3), Color.clear],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                            .blendMode(.overlay)
+                            .opacity(0.5)
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.25), lineWidth: 1)
+                )
+                .shadow(color: AppTheme.accent.opacity(0.5), radius: 16, y: 8)
+                .scaleEffect(animateScanButton ? 1.02 : 1)
+                .animation(AppTheme.Motion.gentle, value: animateScanButton)
             }
+            .buttonStyle(.plain)
         }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .fill(AppTheme.elevated)
+                .overlay(AppTheme.glossyCardGradient
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+                    .blendMode(.overlay)
+                    .opacity(0.5))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.35), radius: 20, y: 10)
     }
 
     private var valueCard: some View {
         let value = CollectionStats.value(items: realItems, snapshots: snapshots)
-        return PokedexPanel(title: "Sammlung", statusLED: AppTheme.ledGold) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .firstTextBaseline) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Sammlungswert")
-                            .font(.caption)
-                            .foregroundStyle(AppTheme.textSecondary)
-                        Text(PriceFormatting.currency(value.total, code: value.currency))
-                            .font(.largeTitle.weight(.bold))
-                            .foregroundStyle(AppTheme.ink)
-                            .monospacedDigit()
-                    }
-                    Spacer()
-                    if isRefreshing {
-                        ProgressView()
-                    } else {
-                        Button {
-                            Task { await refreshPrices() }
-                        } label: {
-                            Label("Preise aktualisieren", systemImage: "arrow.clockwise")
-                        }
-                        .buttonStyle(GlassButtonStyle())
-                        .font(.caption)
-                    }
-                }
-                HStack(spacing: 12) {
-                    if value.unpricedCount > 0 {
-                        Label("\(value.unpricedCount) ohne Preis", systemImage: "questionmark.circle")
-                    }
-                    if value.staleCount > 0 {
-                        Label("\(value.staleCount) veraltet", systemImage: "exclamationmark.triangle")
-                    }
-                    if value.unpricedCount == 0, value.staleCount == 0 {
-                        Label("Alle Preise aktuell", systemImage: "checkmark.circle")
-                    }
-                }
-                .font(.caption2)
-                .foregroundStyle(AppTheme.textSecondary)
-                if let refreshNote {
-                    Text(refreshNote)
-                        .font(.caption2)
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Sammlungswert")
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.textSecondary)
-                } else if let last = PriceRefreshLog(username: auth.currentUser?.username).lastFullRefresh {
-                    Text("Preise aktualisiert \(PriceFormatting.relative(last, now: Date()))")
-                        .font(.caption2)
-                        .foregroundStyle(AppTheme.textSecondary)
+                    Text(PriceFormatting.currency(value.total, code: value.currency))
+                        .font(.largeTitle.weight(.bold))
+                        .foregroundStyle(AppTheme.ink)
+                        .monospacedDigit()
+                }
+                Spacer()
+                if isRefreshing {
+                    ProgressView()
+                        .tint(AppTheme.gold)
+                } else {
+                    Button {
+                        Task { await refreshPrices() }
+                    } label: {
+                        Label("Aktualisieren", systemImage: "arrow.clockwise.circle.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.accent)
+                    }
                 }
             }
+            HStack(spacing: 14) {
+                if value.unpricedCount > 0 {
+                    statChip("\(value.unpricedCount) ohne Preis", icon: "questionmark.circle")
+                }
+                if value.staleCount > 0 {
+                    statChip("\(value.staleCount) veraltet", icon: "exclamationmark.triangle")
+                }
+                if value.unpricedCount == 0, value.staleCount == 0 {
+                    statChip("Alle Preise aktuell", icon: "checkmark.circle.fill", color: .green)
+                }
+            }
+            .font(.caption2)
+            if let refreshNote {
+                Text(refreshNote)
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.textSecondary)
+            } else if let last = PriceRefreshLog(username: auth.currentUser?.username).lastFullRefresh {
+                Text("Preise aktualisiert \(PriceFormatting.relative(last, now: Date()))")
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
         }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .fill(AppTheme.elevated)
+                .overlay(AppTheme.glossyCardGradient
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+                    .blendMode(.overlay)
+                    .opacity(0.4))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.3), radius: 16, y: 8)
+    }
+
+    private func statChip(_ text: String, icon: String, color: Color? = nil) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(color ?? AppTheme.gold)
+            Text(text)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(AppTheme.textSecondary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background((color ?? AppTheme.accent).opacity(0.15), in: Capsule())
     }
 
     private var statsGrid: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             PokedexSectionHeader(title: "Übersicht", systemImage: "chart.bar.fill")
             LazyVGrid(columns: statColumns, spacing: 12) {
-                StatTile(icon: "shippingbox.fill", value: "\(CollectionStats.totalQuantity(realItems))", label: "Karten")
-                StatTile(icon: "rectangle.stack.fill", value: "\(CollectionStats.uniqueCardCount(realItems))", label: "Verschiedene Karten")
-                StatTile(icon: "square.grid.2x2.fill", value: "\(CollectionStats.setCount(realItems))", label: "Sets")
-                StatTile(icon: "sparkles", value: "\(fictionalQuantity)", label: "PokeJ-Karten")
-                StatTile(icon: "point.3.connected.trianglepath.dotted", value: "\(points.balance)", label: "Punkte")
+                StatTile(icon: "shippingbox.fill", value: "\(CollectionStats.totalQuantity(realItems))", label: "Karten", color: AppTheme.accent)
+                StatTile(icon: "rectangle.stack.fill", value: "\(CollectionStats.uniqueCardCount(realItems))", label: "Verschiedene", color: AppTheme.gold)
+                StatTile(icon: "square.grid.2x2.fill", value: "\(CollectionStats.setCount(realItems))", label: "Sets", color: AppTheme.ledGreen)
+                StatTile(icon: "sparkles", value: "\(fictionalQuantity)", label: "PokeJ-Karten", color: AppTheme.ledGold)
+                StatTile(icon: "point.3.connected.trianglepath.dotted", value: "\(points.balance)", label: "Punkte", color: AppTheme.accent)
             }
         }
     }
 
     private var quickActions: some View {
-        Button {
-            showAdd = true
-        } label: {
-            Label("Karte manuell hinzufügen", systemImage: "plus")
-                .frame(maxWidth: .infinity)
+        VStack(alignment: .leading, spacing: 12) {
+            PokedexSectionHeader(title: "Schnellaktionen", systemImage: "bolt.fill")
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                QuickActionButton(
+                    title: "Karte hinzufügen",
+                    subtitle: "Manuell suchen",
+                    icon: "plus.circle.fill",
+                    color: AppTheme.accent
+                ) {
+                    showAdd = true
+                }
+                QuickActionButton(
+                    title: "Packs öffnen",
+                    subtitle: "Fiktive Booster",
+                    icon: "gift.fill",
+                    color: AppTheme.gold
+                ) {
+                    // Packs-Tab wird über TabView gewechselt – hier nur Hinweis
+                }
+                .disabled(true)
+                .opacity(0.5)
+            }
         }
-        .buttonStyle(GlassButtonStyle())
     }
 
     private var recentCards: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             PokedexSectionHeader(title: "Letzte Zugänge", systemImage: "clock.arrow.circlepath")
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 12) {
@@ -232,40 +326,35 @@ struct HomeView: View {
         }
     }
 
-    @ViewBuilder
     private var recentScans: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             PokedexSectionHeader(title: "Letzte Scans", systemImage: "viewfinder")
             if scans.isEmpty {
-                Text("Noch keine Scans. Starte oben mit „Karte scannen\".")
-                    .font(.caption)
-                    .foregroundStyle(AppTheme.textSecondary)
+                emptyState(
+                    icon: "viewfinder",
+                    title: "Noch keine Scans",
+                    subtitle: "Scanne deine erste Karte, um sie der Sammlung hinzuzufügen."
+                )
             } else {
-                VStack(spacing: 8) {
+                VStack(spacing: 10) {
                     ForEach(scans.prefix(5)) { scan in
-                        HStack(alignment: .top, spacing: 10) {
-                            Image(systemName: scanIcon(scan.status))
-                                .foregroundStyle(scanColor(scan.status))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(scan.status.displayName)
-                                    .font(.subheadline.weight(.medium))
-                                    .foregroundStyle(AppTheme.ink)
-                                if !scan.candidateSummary.isEmpty {
-                                    Text(scan.candidateSummary)
-                                        .font(.caption2)
-                                        .foregroundStyle(AppTheme.textSecondary)
-                                        .lineLimit(1)
-                                }
-                            }
-                            Spacer(minLength: 0)
-                            Text(PriceFormatting.relative(scan.timestamp, now: Date()))
-                                .font(.caption2)
-                                .foregroundStyle(AppTheme.textSecondary)
-                        }
-                        .padding(.vertical, 4)
+                        ScanHistoryRow(scan: scan)
                     }
                 }
-                .surfaceCard()
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                        .fill(AppTheme.elevatedAlt)
+                        .overlay(AppTheme.glossyCardGradient
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                            .blendMode(.overlay)
+                            .opacity(0.3))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                        .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.25), radius: 12, y: 6)
             }
         }
     }
@@ -277,23 +366,29 @@ struct HomeView: View {
         return "Willkommen"
     }
 
-    private func scanIcon(_ status: ScanStatus) -> String {
-        switch status {
-        case .recognized: return "checkmark.seal.fill"
-        case .likely: return "checkmark.circle"
-        case .multiple: return "square.stack.3d.up"
-        case .noMatch: return "questionmark.circle"
-        case .error: return "exclamationmark.triangle"
+    private func emptyState(icon: String, title: String, subtitle: String) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 40))
+                .foregroundStyle(AppTheme.textTertiary)
+            Text(title)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(AppTheme.ink)
+            Text(subtitle)
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
         }
-    }
-
-    private func scanColor(_ status: ScanStatus) -> Color {
-        switch status {
-        case .recognized: return .green
-        case .likely: return AppTheme.gold
-        case .multiple, .noMatch: return .orange
-        case .error: return .red
-        }
+        .frame(maxWidth: .infinity)
+        .padding(30)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .fill(AppTheme.elevatedAlt)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .strokeBorder(AppTheme.stroke, lineWidth: 1)
+        )
     }
 
     // MARK: - Preise
@@ -319,8 +414,8 @@ struct HomeView: View {
         }
 
         var parts: [String] = []
-        if summary.insertedSnapshots > 0 { parts.append("\(summary.insertedSnapshots) neue Preisstände") }
-        if summary.updatedVariants > 0 { parts.append("\(summary.updatedVariants) Varianten aktualisiert") }
+        if summary.insertedSnapshots > 0 { parts.append("\(summary.insertedSnapshots) neue") }
+        if summary.updatedVariants > 0 { parts.append("\(summary.updatedVariants) aktualisiert") }
         if summary.failedTargets > 0 { parts.append("\(summary.failedTargets) fehlgeschlagen") }
         refreshNote = parts.isEmpty ? "Preise sind aktuell." : parts.joined(separator: " · ")
     }
@@ -330,14 +425,17 @@ struct StatTile: View {
     let icon: String
     let value: String
     let label: String
+    var color: Color = AppTheme.accent
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(AppTheme.accent)
-                .frame(width: 28)
-            VStack(alignment: .leading, spacing: 1) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(color)
+                Spacer()
+            }
+            VStack(alignment: .leading, spacing: 2) {
                 Text(value)
                     .font(.title3.weight(.bold))
                     .foregroundStyle(AppTheme.ink)
@@ -347,9 +445,116 @@ struct StatTile: View {
                     .foregroundStyle(AppTheme.textSecondary)
                     .lineLimit(1)
             }
-            Spacer(minLength: 0)
         }
-        .surfaceCard(radius: AppTheme.cardRadiusSmall, padding: 12)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                .fill(AppTheme.elevated)
+                .overlay(AppTheme.glossyCardGradient
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                    .blendMode(.overlay)
+                    .opacity(0.3))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.25), radius: 10, y: 5)
+    }
+}
+
+struct QuickActionButton: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let color: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.title2)
+                        .foregroundStyle(color)
+                    Spacer()
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.ink)
+                    Text(subtitle)
+                        .font(.caption2)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineLimit(2)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 110, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                    .fill(AppTheme.elevated)
+                    .overlay(AppTheme.glossyCardGradient
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                        .blendMode(.overlay)
+                        .opacity(0.3))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                    .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct ScanHistoryRow: View {
+    let scan: ScanRecord
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: scanIcon(scan.status))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(scanColor(scan.status))
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(scan.status.displayName)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(AppTheme.ink)
+                    .lineLimit(1)
+                if !scan.candidateSummary.isEmpty {
+                    Text(scan.candidateSummary)
+                        .font(.caption2)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 0)
+            Text(PriceFormatting.relative(scan.timestamp, now: Date()))
+                .font(.caption2)
+                .foregroundStyle(AppTheme.textTertiary)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func scanIcon(_ status: ScanStatus) -> String {
+        switch status {
+        case .recognized: return "checkmark.seal.fill"
+        case .likely: return "checkmark.circle"
+        case .multiple: return "square.stack.3d.up"
+        case .noMatch: return "questionmark.circle"
+        case .error: return "exclamationmark.triangle"
+        }
+    }
+
+    private func scanColor(_ status: ScanStatus) -> Color {
+        switch status {
+        case .recognized: return .green
+        case .likely: return AppTheme.gold
+        case .multiple, .noMatch: return .orange
+        case .error: return .red
+        }
     }
 }
 

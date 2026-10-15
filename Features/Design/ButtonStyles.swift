@@ -10,15 +10,15 @@ struct PressableCardStyle: ButtonStyle {
     }
 }
 
-/// Prominenter Aktionsbutton im App-Farbschema mit glossy 3D-Druckeffekt.
+/// Prominenter Aktionsbutton mit glossy Verlauf und großer Touch-Zone.
 struct BrandButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline.weight(.semibold))
             .foregroundStyle(.white)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity, minHeight: AppTheme.minTouchTarget)
             .background(
                 RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
                     .fill(AppTheme.brandGradient)
@@ -38,7 +38,7 @@ struct BrandButtonStyle: ButtonStyle {
                     .strokeBorder(Color.white.opacity(0.30), lineWidth: 1)
             )
             .shadow(color: AppTheme.accent.opacity(configuration.isPressed ? 0.20 : 0.50),
-                    radius: configuration.isPressed ? 4 : 14, y: configuration.isPressed ? 2 : 10)
+                    radius: configuration.isPressed ? 4 : 16, y: configuration.isPressed ? 2 : 12)
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(AppTheme.Motion.snappy, value: configuration.isPressed)
     }
@@ -50,8 +50,9 @@ struct GlassButtonStyle: ButtonStyle {
         configuration.label
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(AppTheme.ink)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+            .frame(minHeight: AppTheme.minTouchTarget)
             .background(
                 Capsule()
                     .fill(AppTheme.elevatedAlt)
@@ -70,7 +71,7 @@ struct GlassButtonStyle: ButtonStyle {
 struct SuccessCheckmark: View {
     var body: some View {
         Image(systemName: "checkmark.seal.fill")
-            .font(.system(size: 44))
+            .font(.system(size: 48))
             .foregroundStyle(AppTheme.brandGradient)
             .symbolEffect(.bounce, value: 1)
     }

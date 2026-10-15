@@ -56,57 +56,21 @@ struct AddEditCardView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                if isEdit {
-                    Section("Karte") { editedCardSummary }
-                } else {
-                    Section("Karte") { searchSection }
-                }
+            ScrollView {
+                VStack(spacing: 20) {
+                    if isEdit {
+                        editedCardSummary
+                    } else {
+                        searchSection
+                    }
 
-                Section("Exemplar") {
-                    Picker("Sprache", selection: $language) {
-                        ForEach(Language.allCases) { Text($0.displayName).tag($0) }
-                    }
-                    Picker("Variante", selection: $printing) {
-                        ForEach(Printing.allCases) { Text($0.displayName).tag($0) }
-                    }
-                    Picker("Zustand", selection: $condition) {
-                        ForEach(CardCondition.allCases) { Text($0.displayName).tag($0) }
-                    }
-                    Stepper("Anzahl: \(quantity)", value: $quantity, in: 1...999)
-                    if !isEdit {
-                        Toggle("Gleiche Karte zusammenfassen", isOn: $mergeDuplicates)
-                    }
-                }
+                    exemplarSection
+                    purchaseSection
+                    notesSection
 
-                Section("Kauf (optional)") {
-                    TextField("Kaufpreis in €", text: $purchasePriceText)
-                        .keyboardType(.decimalPad)
-                    Toggle("Kaufdatum angeben", isOn: $hasPurchaseDate)
-                    if hasPurchaseDate {
-                        DatePicker("Kaufdatum", selection: $purchaseDate, displayedComponents: .date)
-                    }
+                    saveButton
                 }
-
-                Section("Notizen") {
-                    TextField("Notizen", text: $notes, axis: .vertical)
-                        .lineLimit(2...5)
-                }
-
-                Section {
-                    Button {
-                        save()
-                    } label: {
-                        Label(
-                            isEdit ? "Änderungen speichern" : "Zur Bibliothek hinzufügen",
-                            systemImage: isEdit ? "checkmark.circle.fill" : "tray.and.arrow.down.fill"
-                        )
-                    }
-                    .buttonStyle(BrandButtonStyle())
-                    .disabled(!canSave)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                    .listRowBackground(Color.clear)
-                }
+                .padding(20)
             }
             .navigationTitle(isEdit ? "Karte bearbeiten" : "Karte hinzufügen")
             .navigationBarTitleDisplayMode(.inline)
@@ -126,51 +90,293 @@ struct AddEditCardView: View {
             } message: {
                 Text(saveError ?? "")
             }
+            .background(AppTheme.appBackground.ignoresSafeArea())
         }
     }
 
+    // MARK: - Suche
+
     @ViewBuilder
     private var searchSection: some View {
-        TextField("Name oder Kartennummer", text: $query)
-        ForEach(results) { brief in
-            Button {
-                selectedCard = brief
-                query = ""
-                results = []
-            } label: {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(brief.name).foregroundStyle(.primary)
-                        Text("\(brief.setName) · #\(brief.localId)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    if selectedCard?.id == brief.id {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.tint)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Karte suchen")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(AppTheme.textSecondary)
+                .tracking(0.5)
+
+            VStack(alignment: .leading, spacing: 8) {
+                TextField("Name oder Kartennummer (z. B. \"Pikachu\" oder \"4\")", text: $query)
+                    .font(.body)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 14)
+                    .background(AppTheme.elevated, in: RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous).strokeBorder(AppTheme.stroke, lineWidth: 1))
+
+                if !results.isEmpty {
+                    VStack(spacing: 0) {
+                        ForEach(results) { brief in
+                            Button {
+                                selectedCard = brief
+                                query = ""
+                                results = []
+                            } label: {
+                                HStack(spacing: 12) {
+                                    if let url = brief.imageURL {
+                                        AsyncImage(url: url) { phase in
+                                            if case .success(let image) = phase {
+                                                image.resizable().scaledToFill()
+                                            } else {
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(Color.white.opacity(0.08))
+                                            }
+                                        }
+                                        .frame(width: 44, height: 62)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                    } else {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.white.opacity(0.08))
+                                            .frame(width: 44, height: 62)
+                                            .overlay {
+                                                Image(systemName: "photo")
+                                                    .font(.caption)
+                                                    .foregroundStyle(AppTheme.textSecondary)
+                                            }
+                                    }
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(brief.name)
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(AppTheme.ink)
+                                            .lineLimit(1)
+                                        Text("\(brief.setName) · #\(brief.localId)")
+                                            .font(.caption2)
+                                            .foregroundStyle(AppTheme.textSecondary)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer()
+                                    if selectedCard?.id == brief.id {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundStyle(AppTheme.accent)
+                                    }
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .background(
+                                    selectedCard?.id == brief.id
+                                        ? AppTheme.accent.opacity(0.15)
+                                        : Color.white.opacity(0.03),
+                                    in: RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
+
+                if let selectedCard {
+                    HStack(spacing: 10) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(AppTheme.accent)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Ausgewählt: \(selectedCard.name)")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppTheme.ink)
+                            Text("\(selectedCard.setName) #\(selectedCard.localId)")
+                                .font(.caption2)
+                                .foregroundStyle(AppTheme.textSecondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(12)
+                    .background(AppTheme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                }
             }
-        }
-        if let selectedCard {
-            Label("\(selectedCard.name) · \(selectedCard.setName) #\(selectedCard.localId)", systemImage: "checkmark.circle.fill")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
         }
     }
 
     @ViewBuilder
     private var editedCardSummary: some View {
         if case .edit(let item) = mode, let card = item.variant?.card {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(card.name).font(.headline)
-                Text("\(card.setName) · #\(card.localId)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Karte bearbeiten")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .tracking(0.5)
+                HStack(spacing: 12) {
+                    if let url = card.imageURL {
+                        AsyncImage(url: url) { phase in
+                            if case .success(let image) = phase {
+                                image.resizable().scaledToFill()
+                            } else {
+                                placeholderImage
+                            }
+                        }
+                        .frame(width: 56, height: 78)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    } else {
+                        placeholderImage
+                            .frame(width: 56, height: 78)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(card.name)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.ink)
+                        Text("\(card.setName) · #\(card.localId)")
+                            .font(.caption2)
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                    Spacer()
+                }
+                .padding(14)
+                .background(AppTheme.elevated, in: RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous).strokeBorder(AppTheme.stroke, lineWidth: 1))
             }
         }
     }
+
+    private var placeholderImage: some View {
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .fill(Color.white.opacity(0.08))
+            .overlay {
+                Image(systemName: "photo")
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+    }
+
+    // MARK: - Exemplar
+
+    private var exemplarSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Exemplar")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(AppTheme.textSecondary)
+                .tracking(0.5)
+
+            VStack(spacing: 12) {
+                PickerRow(title: "Sprache", selection: $language, options: Language.allCases.map { $0.displayName })
+                PickerRow(title: "Variante", selection: $printing, options: Printing.allCases.map { $0.displayName })
+                PickerRow(title: "Zustand", selection: $condition, options: CardCondition.allCases.map { $0.displayName })
+
+                HStack(spacing: 12) {
+                    Text("Anzahl")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(AppTheme.ink)
+                    Spacer()
+                    Stepper("", value: $quantity, in: 1...999)
+                        .labelsHidden()
+                    Text("\(quantity)")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(AppTheme.ink)
+                        .frame(width: 30, alignment: .trailing)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 14)
+                .background(AppTheme.elevated, in: RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous).strokeBorder(AppTheme.stroke, lineWidth: 1))
+
+                if !isEdit {
+                    Toggle("Gleiche Karte zusammenfassen", isOn: $mergeDuplicates)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.ink)
+                        .toggleStyle(ModernToggleStyle())
+                }
+            }
+        }
+    }
+
+    // MARK: - Kauf
+
+    private var purchaseSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Kauf (optional)")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(AppTheme.textSecondary)
+                .tracking(0.5)
+
+            VStack(spacing: 12) {
+                TextField("Kaufpreis in €", text: $purchasePriceText)
+                    .font(.body)
+                    .keyboardType(.decimalPad)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 14)
+                    .background(AppTheme.elevated, in: RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous).strokeBorder(AppTheme.stroke, lineWidth: 1))
+
+                Toggle("Kaufdatum angeben", isOn: $hasPurchaseDate)
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.ink)
+                    .toggleStyle(ModernToggleStyle())
+
+                if hasPurchaseDate {
+                    DatePicker("Kaufdatum", selection: $purchaseDate, displayedComponents: .date)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.ink)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 14)
+                        .background(AppTheme.elevated, in: RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous).strokeBorder(AppTheme.stroke, lineWidth: 1))
+                }
+            }
+        }
+    }
+
+    // MARK: - Notizen
+
+    private var notesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Notizen")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(AppTheme.textSecondary)
+                .tracking(0.5)
+
+            TextField("Notizen (z. B. Woher, Zustand, Besonderheiten)", text: $notes, axis: .vertical)
+                .font(.body)
+                .lineLimit(2...5)
+                .padding(14)
+                .background(AppTheme.elevated, in: RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous).strokeBorder(AppTheme.stroke, lineWidth: 1))
+        }
+    }
+
+    // MARK: - Speichern
+
+    private var saveButton: some View {
+        Button {
+            save()
+        } label: {
+            HStack {
+                Image(systemName: isEdit ? "checkmark.circle.fill" : "tray.and.arrow.down.fill")
+                Text(isEdit ? "Änderungen speichern" : "Zur Sammlung hinzufügen")
+            }
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                    .fill(canSave ? AppTheme.brandGradient : Color.secondary.opacity(0.3))
+                    .overlay(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.3), Color.clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                        .blendMode(.overlay)
+                        .opacity(canSave ? 0.5 : 0)
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.25), lineWidth: 1)
+            )
+            .shadow(color: AppTheme.accent.opacity(canSave ? 0.5 : 0.1), radius: 14, y: 8)
+        }
+        .disabled(!canSave)
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Logik
 
     @MainActor
     private func runSearch() async {
@@ -182,8 +388,6 @@ struct AddEditCardView: View {
         try? await Task.sleep(nanoseconds: 250_000_000)
         if Task.isCancelled { return }
 
-        // Reine Nummer (z. B. "4", "04", "SV123-5") → über localId suchen,
-        // sonst über Namen. Beide Felder dürfen gleichzeitig übergeben werden.
         let looksLikeNumber = text.rangeOfCharacter(from: CharacterSet.decimalDigits) != nil
             && text.rangeOfCharacter(from: CharacterSet.letters) == nil
 
@@ -287,4 +491,57 @@ struct AddEditCardView: View {
         guard !normalized.isEmpty else { return nil }
         return Decimal(string: normalized)
     }
+}
+
+/// Moderne Picker-Zeile mit Segmented-Control-Stil.
+struct PickerRow: View {
+    let title: String
+    @Binding var selection: Int
+    let options: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.textSecondary)
+            Picker(title, selection: $selection) {
+                ForEach(0..<options.count, id: \.self) { index in
+                    Text(options[index]).tag(index)
+                }
+            }
+            .pickerStyle(.segmented)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 14)
+        .background(AppTheme.elevated, in: RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous).strokeBorder(AppTheme.stroke, lineWidth: 1))
+    }
+}
+
+/// Moderner Toggle-Stil.
+struct ModernToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack {
+            configuration.label
+            Spacer()
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(configuration.isOn ? AppTheme.accent : Color.white.opacity(0.12))
+                    .frame(width: 48, height: 28)
+                Circle()
+                    .fill(.white)
+                    .frame(width: 24, height: 24)
+                    .offset(x: configuration.isOn ? 10 : -10)
+                    .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+            }
+            .animation(AppTheme.Motion.snappy, value: configuration.isOn)
+        }
+    }
+}
+
+#Preview {
+    AddEditCardView(mode: .add)
+        .environmentObject(AuthStore())
+        .environmentObject(PointsStore())
+        .modelContainer(PreviewData.container)
 }

@@ -24,19 +24,22 @@ struct PackShopView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                balanceSection
-                explanationSection
-                classicSection
-                catalogSections
-                if !points.recentOpenings.isEmpty {
-                    historySection
+            ScrollView {
+                VStack(spacing: 20) {
+                    balanceSection
+                    explanationSection
+                    classicSection
+                    catalogSections
+                    if !points.recentOpenings.isEmpty {
+                        historySection
+                    }
                 }
+                .padding()
+                .padding(.bottom, 30)
             }
-            .listSectionSpacing(.compact)
             .navigationTitle("Packs")
-            .searchable(text: $searchText, prompt: "Set oder Serie")
-            .scrollContentBackground(.hidden)
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "Set oder Serie suchen")
             .background(AppTheme.appBackground.ignoresSafeArea())
             .toolbarBackground(AppTheme.backgroundTop, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -48,13 +51,16 @@ struct PackShopView: View {
     }
 
     private var balanceSection: some View {
-        Section {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("Punkte", systemImage: "point.3.connected.trianglepath.dotted")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(AppTheme.ink)
                 Spacer()
                 Text("\(points.balance)")
-                    .font(.title3.bold())
+                    .font(.title2.weight(.bold))
                     .monospacedDigit()
+                    .foregroundStyle(AppTheme.gold)
             }
             Button {
                 if points.claimDailyBonus() {
@@ -67,25 +73,59 @@ struct PackShopView: View {
                         : "Tagesbonus heute schon abgeholt",
                     systemImage: "sun.max.fill"
                 )
+                .font(.subheadline.weight(.medium))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
             }
+            .buttonStyle(GlassButtonStyle())
             .disabled(!points.canClaimDailyBonus)
-        } footer: {
-            if let bonusNote {
-                Text(bonusNote)
-            }
+            .opacity(points.canClaimDailyBonus ? 1 : 0.6)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .fill(AppTheme.elevated)
+                .overlay(AppTheme.glossyCardGradient
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+                    .blendMode(.overlay)
+                    .opacity(0.4))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.3), radius: 14, y: 7)
+
+        if let bonusNote {
+            Text(bonusNote)
+                .font(.caption2)
+                .foregroundStyle(AppTheme.textSecondary)
+                .padding(.horizontal)
         }
     }
 
     private var explanationSection: some View {
-        Section {
-            Text("Fiktive Booster aus dem Offline-Katalog. Ältere Sets sind günstiger, neuere teurer. Verdiene Punkte durch bestätigte Scans (+\(PointsStore.scanRewardPerCard) pro Karte) und den Tagesbonus. Gekauft ist geöffnet – Punkte werden sofort abgezogen.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Fiktive Booster")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(AppTheme.textSecondary)
+                .tracking(0.5)
+            Text("Booster aus dem Offline-Katalog. Ältere Sets sind günstiger, neuere teurer. Verdiene Punkte durch bestätigte Scans (+\(PointsStore.scanRewardPerCard) pro Karte) und den Tagesbonus. Gekauft ist geöffnet – Punkte werden sofort abgezogen.")
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textSecondary)
+                .lineLimit(3)
         }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                .fill(AppTheme.elevatedAlt)
+                .overlay(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous).strokeBorder(AppTheme.stroke, lineWidth: 1))
+        )
     }
 
     private var classicSection: some View {
-        Section("Booster") {
+        VStack(alignment: .leading, spacing: 12) {
+            PokedexSectionHeader(title: "Klassische Booster", systemImage: "gift.fill")
             ForEach(PackDefinition.all) { pack in
                 Button {
                     open(pack)
@@ -101,7 +141,8 @@ struct PackShopView: View {
     @ViewBuilder
     private var catalogSections: some View {
         ForEach(groups) { group in
-            Section {
+            VStack(alignment: .leading, spacing: 12) {
+                PokedexSectionHeader(title: group.era.name, systemImage: "gift.fill")
                 ForEach(group.packs) { pack in
                     Button {
                         open(pack)
@@ -111,32 +152,20 @@ struct PackShopView: View {
                     .buttonStyle(.plain)
                     .disabled(!points.canAfford(pack))
                 }
-            } header: {
-                HStack(spacing: 8) {
-                    Text(group.era.name)
-                    Spacer()
-                    Text("\(group.packs.count)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            } footer: {
-                if group.era.id == "base" {
-                    Text("Klassische Sets – die günstigste Stufe.")
-                }
             }
         }
     }
 
     private func packRow(_ pack: PackDefinition, showsArt: Bool) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             if showsArt {
-                BoosterPackArt(pack: pack, width: 52, showsDetails: false)
+                BoosterPackArt(pack: pack, width: 56, showsDetails: false)
             } else {
                 Image(systemName: pack.iconName)
                     .font(.title2)
                     .foregroundStyle(AppTheme.accent)
-                    .frame(width: 44, height: 44)
-                    .background(AppTheme.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 10))
+                    .frame(width: 48, height: 48)
+                    .background(AppTheme.accent.opacity(0.16), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(pack.name).font(.headline.weight(.bold)).foregroundStyle(AppTheme.ink).lineLimit(1)
@@ -152,8 +181,8 @@ struct PackShopView: View {
             Text("\(pack.cost) P")
                 .font(.subheadline.bold())
                 .monospacedDigit()
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
                 .background(
                     Capsule().fill(
                         points.canAfford(pack)
@@ -161,25 +190,47 @@ struct PackShopView: View {
                             : Color.secondary.opacity(0.12)
                     )
                 )
+                .foregroundStyle(points.canAfford(pack) ? AppTheme.accent : AppTheme.textTertiary)
         }
-        .opacity(points.canAfford(pack) ? 1 : 0.6)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                .fill(points.canAfford(pack) ? AppTheme.elevated : Color.white.opacity(0.04))
+                .overlay(AppTheme.glossyCardGradient
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                    .blendMode(.overlay)
+                    .opacity(points.canAfford(pack) ? 0.3 : 0.1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                .strokeBorder(AppTheme.stroke, lineWidth: 1)
+        )
+        .opacity(points.canAfford(pack) ? 1 : 0.55)
+        .scaleEffect(points.canAfford(pack) ? 1 : 0.98)
+        .animation(AppTheme.Motion.snappy, value: points.canAfford(pack))
     }
 
     private var historySection: some View {
-        Section("Zuletzt geöffnet") {
+        VStack(alignment: .leading, spacing: 12) {
+            PokedexSectionHeader(title: "Zuletzt geöffnet", systemImage: "clock.arrow.circlepath")
             ForEach(points.recentOpenings) { event in
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(event.packName).font(.subheadline)
+                        Text(event.packName).font(.subheadline.weight(.medium)).foregroundStyle(AppTheme.ink)
                         Text(event.date.formatted(date: .abbreviated, time: .shortened))
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                     }
                     Spacer()
                     Text("\(event.cardCount) Karten · \(event.holoCount) Holo")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(AppTheme.elevatedAlt, in: RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous).strokeBorder(AppTheme.stroke, lineWidth: 1))
             }
         }
     }

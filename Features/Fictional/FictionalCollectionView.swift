@@ -32,28 +32,21 @@ struct FictionalCollectionView: View {
         NavigationStack {
             Group {
                 if items.isEmpty {
-                    ContentUnavailableView(
-                        "Noch keine PokeJ-Karten",
-                        systemImage: "sparkles",
-                        description: Text("Öffne Booster im Packs-Tab, um deine PokeJ-Sammlung zu füllen.")
-                    )
+                    emptyState
                 } else if visibleItems.isEmpty {
-                    ContentUnavailableView(
-                        "Keine Treffer",
-                        systemImage: "magnifyingglass",
-                        description: Text("Passe deine Suche an.")
-                    )
+                    emptySearchState
                 } else {
                     content
                 }
             }
             .navigationTitle("PokeJ")
-            .searchable(text: $searchText, prompt: "Name oder Set")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "Name oder Set suchen")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Label("\(points.balance) P", systemImage: "point.3.connected.trianglepath.dotted")
                         .labelStyle(.titleAndIcon)
-                        .padding(.horizontal, 8)
+                        .padding(.horizontal, 10)
                         .padding(.vertical, 6)
                         .background(Color.secondary.opacity(0.12), in: Capsule())
                         .font(.caption)
@@ -70,12 +63,49 @@ struct FictionalCollectionView: View {
         }
     }
 
+    // MARK: - Leer-Zustände
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 64))
+                .foregroundStyle(AppTheme.textTertiary)
+            Text("Noch keine PokeJ-Karten")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(AppTheme.ink)
+            Text("Öffne Booster im Packs-Tab, um deine PokeJ-Sammlung zu füllen.")
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(40)
+    }
+
+    private var emptySearchState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 56))
+                .foregroundStyle(AppTheme.textTertiary)
+            Text("Keine Treffer")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(AppTheme.ink)
+            Text("Passe deine Suche an.")
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(40)
+    }
+
+    // MARK: - Inhalt
+
     private var content: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 20) {
                 statsGrid
                 LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 150), spacing: AppTheme.gridSpacing)],
+                    columns: [GridItem(.adaptive(minimum: 160), spacing: AppTheme.gridSpacing)],
                     spacing: AppTheme.gridSpacing
                 ) {
                     ForEach(visibleItems) { item in
@@ -90,7 +120,7 @@ struct FictionalCollectionView: View {
                                 context.delete(item)
                                 try? context.save()
                             } label: {
-                                Label("Löschen", systemImage: "trash")
+                                Label("Löschen", systemImage: "trash.fill")
                             }
                         }
                     }
@@ -98,20 +128,21 @@ struct FictionalCollectionView: View {
                 .animation(AppTheme.Motion.smooth, value: visibleItems.count)
             }
             .padding()
+            .padding(.bottom, 30)
         }
     }
 
     private var statsGrid: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             PokedexSectionHeader(title: "PokeJ-Sammlung", systemImage: "sparkles")
             LazyVGrid(
                 columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
                 spacing: 12
             ) {
-                StatTile(icon: "shippingbox.fill", value: "\(CollectionStats.totalQuantity(items))", label: "Karten")
-                StatTile(icon: "rectangle.stack.fill", value: "\(CollectionStats.uniqueCardCount(items))", label: "Verschiedene")
-                StatTile(icon: "square.grid.2x2.fill", value: "\(CollectionStats.setCount(items))", label: "Sets")
-                StatTile(icon: "sparkles", value: "\(holoCount)", label: "Holo")
+                StatTile(icon: "shippingbox.fill", value: "\(CollectionStats.totalQuantity(items))", label: "Karten", color: AppTheme.accent)
+                StatTile(icon: "rectangle.stack.fill", value: "\(CollectionStats.uniqueCardCount(items))", label: "Verschiedene", color: AppTheme.gold)
+                StatTile(icon: "square.grid.2x2.fill", value: "\(CollectionStats.setCount(items))", label: "Sets", color: AppTheme.ledGreen)
+                StatTile(icon: "sparkles", value: "\(holoCount)", label: "Holo", color: AppTheme.ledGold)
             }
         }
     }
@@ -126,5 +157,5 @@ struct FictionalCollectionView: View {
 #Preview {
     FictionalCollectionView()
         .environmentObject(PointsStore(defaults: UserDefaults(suiteName: "preview.fictional")!))
-        .modelContainer(PreviewData.container)
+        .modelContainer(for: [Card.self, CardVariant.self, CollectionItem.self], inMemory: true)
 }

@@ -26,8 +26,7 @@ struct ScanPageResult: Identifiable {
     var topMatch: CardMatch? { outcome.matches.first }
 }
 
-/// Scanner-Flow: Bild(er) aufnehmen/wählen → OCR → Abgleich → Vorschau mit Bild
-/// und Preis → nach Zustimmung direkt in die Bibliothek.
+/// Scanner-Flow: Bild aufnehmen → OCR → Abgleich → Vorschau → Speichern.
 struct ScannerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
@@ -52,6 +51,9 @@ struct ScannerView: View {
     @State private var pickerItem: PhotosPickerItem?
     @State private var formTarget: AddTarget?
     @State private var pendingAdd: PendingAdd?
+
+    // QoL: Blitz / Taschenlampe
+    @State private var torchIsOn = false
 
     private struct PendingAdd {
         let match: CardMatch
@@ -106,7 +108,8 @@ struct ScannerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Beenden") { dismiss() }
+                    Button("Fertig") { dismiss() }
+                        .font(.headline)
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
@@ -117,25 +120,28 @@ struct ScannerView: View {
                         }
                     } label: {
                         Label("Sprache: \(scanLanguage.displayName)", systemImage: "globe")
+                            .font(.headline)
                     }
                     .disabled(state == .processing)
+                }
+                if cameraAvailable {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            torchIsOn.toggle()
+                        } label: {
+                            Image(systemName: torchIsOn ? "flashlight.on.fill" : "flashlight.off.fill")
+                                .font(.headline)
+                                .foregroundStyle(torchIsOn ? AppTheme.gold : .primary)
+                        }
+                        .disabled(state == .processing)
+                    }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         presentCapture()
                     } label: {
-                        Label("Neu scannen", systemImage: "viewfinder")
-                    }
-                    .disabled(state == .processing)
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        isBatchMode.toggle()
-                    } label: {
-                        Label(
-                            isBatchMode ? "Stapelscan an: \(batchCount)" : "Stapelscan",
-                            systemImage: "square.stack.3d.up.fill"
-                        )
+                        Label("Neu scannen", systemImage: "camera.viewfinder")
+                            .font(.headline)
                     }
                     .disabled(state == .processing)
                 }
@@ -180,116 +186,170 @@ struct ScannerView: View {
         .rewardBanner(points: points)
     }
 
-    // MARK: - Zustandsansichten
+    // MARK: - Leer-Zustand
 
     private var idleView: some View {
-        ContentUnavailableView {
-            Label("Karten scannen", systemImage: "camera.viewfinder")
-        } description: {
+        VStack(spacing: 24) {
+            Spacer()
+
+            Image(systemName: "camera.viewfinder")
+                .font(.system(size: 72))
+                .foregroundStyle(AppTheme.textSecondary)
+
+            Text(cameraAvailable ? "Karte scannen" : "Foto auswählen")
+                .font(.title2.weight(.bold))
+                .foregroundStyle(AppTheme.ink)
+
             Text(cameraAvailable
-                 ? "Fotografiere eine oder mehrere Karten. Die Erkennung läuft vollständig auf dem Gerät."
-                 : "Wähle ein Foto deiner Karte. Die Erkennung läuft vollständig auf dem Gerät.")
-        } actions: {
-            Button {
-                presentCapture()
-            } label: {
-                Label(cameraAvailable ? "Kamera öffnen" : "Foto auswählen", systemImage: cameraAvailable ? "camera" : "photo.on.rectangle")
+                 ? "Halte deine Pokémon-Karte in den Sucher. Die Erkennung läuft automatisch auf dem Gerät."
+                 : "Wähle ein Foto aus deiner Mediathek. Die Erkennung läuft auf dem Gerät.")
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+
+            VStack(spacing: 12) {
+                Button {
+                    presentCapture()
+                } label: {
+                    Label(cameraAvailable ? "Kamera öffnen" : "Foto auswählen", systemImage: cameraAvailable ? "camera" : "photo.on.rectangle")
+                        .font(.headline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                }
+                .buttonStyle(BrandButtonStyle())
+
+                if cameraAvailable {
+                    Button("Foto aus der Mediathek") { showPicker = true }
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(AppTheme.accent)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            if cameraAvailable {
-                Button("Foto aus der Mediathek") { showPicker = true }
-            }
+            .padding(.horizontal, 40)
+
             if isBatchMode {
-                Text("Stapelscan aktiv · \(batchCount) Karten übernommen")
+                Text("Stapelscan aktiv · \(batchCount) Karten erfasst")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.textSecondary)
             }
+
+            Spacer()
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppTheme.appBackground.ignoresSafeArea())
     }
 
     private var processingView: some View {
         VStack(spacing: 16) {
             ProgressView()
                 .controlSize(.large)
+                .tint(AppTheme.accent)
             Text(totalPages > 1 ? "Karten werden erkannt … (\(processedPages)/\(totalPages))" : "Karte wird erkannt …")
-                .foregroundStyle(.secondary)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(AppTheme.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppTheme.appBackground.ignoresSafeArea())
     }
 
     @ViewBuilder
     private var resultView: some View {
-        List {
-            ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
-                Section {
-                    pageResult(result)
-                } header: {
-                    HStack {
-                        Text(results.count > 1 ? "Karte \(index + 1)" : "Ergebnis")
-                        Spacer()
-                        if savedResultIds.contains(result.id) {
-                            Label("Gespeichert", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                        }
-                    }
+        ScrollView {
+            VStack(spacing: 16) {
+                ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
+                    pageResult(result, index: index)
                 }
-            }
 
-            if pendingCount > 1 {
-                Section {
+                if pendingCount > 1 {
                     Button {
                         addAllPending()
                     } label: {
                         Label("Alle \(pendingCount) erkannten Karten übernehmen", systemImage: "square.stack.and.arrow.down.fill")
+                            .font(.headline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
                     }
+                    .buttonStyle(BrandButtonStyle())
+                    .padding(.horizontal)
                 }
-            }
 
-            if isBatchMode {
-                Section {
-                    LabeledContent("In dieser Runde", value: "\(batchCount) Karten")
-                    Button {
-                        presentCapture()
-                    } label: {
-                        Label("Nächste Karten scannen", systemImage: "camera.viewfinder")
+                if isBatchMode {
+                    VStack(spacing: 10) {
+                        LabeledContent("In dieser Runde", value: "\(batchCount) Karten")
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
+                        Button {
+                            presentCapture()
+                        } label: {
+                            Label("Nächste Karten scannen", systemImage: "camera.viewfinder")
+                                .font(.headline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        }
+                        .buttonStyle(BrandButtonStyle())
+                        Button {
+                            dismiss()
+                        } label: {
+                            Label("Runde beenden", systemImage: "checkmark.circle")
+                                .font(.headline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        }
+                        .buttonStyle(GlassButtonStyle())
                     }
-                    Button {
-                        dismiss()
-                    } label: {
-                        Label("Runde beenden", systemImage: "checkmark.circle")
-                    }
-                } footer: {
-                    Text("Im Stapelscan erfasst du mehrere Karten nacheinander. Jede übernommene Karte bringt +\(PointsStore.scanRewardPerCard) Punkte.")
+                    .padding(.horizontal)
                 }
-            }
 
-            Section {
+                SectionHeader(title: "Oder", icon: "minus")
+
                 Button {
                     formTarget = .fresh
                 } label: {
                     Label("Andere Karte manuell suchen", systemImage: "square.and.pencil")
+                        .font(.headline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
                 }
+                .buttonStyle(GlassButtonStyle())
+                .padding(.horizontal)
+
+                Spacer(minHeight: 40)
             }
+            .padding(.top, 8)
         }
+        .background(AppTheme.appBackground.ignoresSafeArea())
     }
 
     private func failedView(_ message: String) -> some View {
-        ContentUnavailableView {
-            Label("Scan fehlgeschlagen", systemImage: "exclamationmark.triangle")
-        } description: {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 56))
+                .foregroundStyle(.red)
+            Text("Scan fehlgeschlagen")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(AppTheme.ink)
             Text(message)
-        } actions: {
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
             Button("Erneut versuchen") { presentCapture() }
-                .buttonStyle(.borderedProminent)
-            Button("Beenden") { dismiss() }
+                .font(.headline.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .buttonStyle(BrandButtonStyle())
+                .padding(.horizontal, 40)
+            Spacer()
         }
+        .background(AppTheme.appBackground.ignoresSafeArea())
     }
 
-    // MARK: - Bausteine
+    // MARK: - Scan-Ergebnis-Karte
 
     @ViewBuilder
-    private func pageResult(_ result: ScanPageResult) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+    private func pageResult(_ result: ScanPageResult, index: Int) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 12) {
                 scannedThumbnail(result.image)
                 matchedThumbnail(result)
@@ -300,22 +360,23 @@ struct ScannerView: View {
                     if let name = result.fields.nameCandidates.first {
                         Text(name)
                             .font(.subheadline.weight(.medium))
+                            .foregroundStyle(AppTheme.ink)
                             .lineLimit(2)
                     }
                     if let number = result.fields.number {
                         Text("#\(number)" + (result.fields.printedTotal.map { "/\($0)" } ?? ""))
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                     }
                     if let hp = result.fields.hp {
                         Text("KP \(hp)")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                     }
                     if let match = effectiveMatch(for: result) {
                         Text("Treffer \(Int((match.score * 100).rounded())) %")
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                     }
                 }
                 Spacer(minLength: 0)
@@ -329,7 +390,7 @@ struct ScannerView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.gold)
                 }
-                VStack(spacing: 6) {
+                VStack(spacing: 8) {
                     ForEach(Array(result.outcome.matches.prefix(4))) { match in
                         Button {
                             select(match, for: result)
@@ -342,25 +403,46 @@ struct ScannerView: View {
             } else {
                 Text("Keine sichere Zuordnung. Nutze die manuelle Suche, um die Karte hinzuzufügen.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.textSecondary)
             }
 
             if let match = effectiveMatch(for: result) {
                 if savedResultIds.contains(result.id) {
-                    Label("In der Bibliothek", systemImage: "checkmark.circle.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.green)
+                    HStack {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundStyle(.green)
+                        Text("In der Bibliothek")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.green)
+                    }
                 } else {
                     Button {
                         pendingAdd = PendingAdd(match: match, pageId: result.id)
                     } label: {
-                        Label("Zur Bibliothek hinzufügen", systemImage: "tray.and.arrow.down.fill")
+                        Label("Zur Sammlung hinzufügen", systemImage: "tray.and.arrow.down.fill")
+                            .font(.headline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
                     }
                     .buttonStyle(BrandButtonStyle())
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .fill(AppTheme.elevated)
+                .overlay(AppTheme.glossyCardGradient
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+                    .blendMode(.overlay)
+                    .opacity(0.4))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.3), radius: 12, y: 6)
+        .padding(.horizontal)
     }
 
     private func scannedThumbnail(_ image: UIImage) -> some View {
@@ -368,7 +450,7 @@ struct ScannerView: View {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFill()
-                .frame(width: 74, height: 103)
+                .frame(width: 70, height: 98)
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadiusSmall, style: .continuous))
             Text("Scan")
                 .font(.caption2)
@@ -392,10 +474,10 @@ struct ScannerView: View {
                         cardPlaceholder
                     }
                 }
-                .frame(width: 84, height: 117)
+                .frame(width: 80, height: 112)
             } else {
                 cardPlaceholder
-                    .frame(width: 84, height: 117)
+                    .frame(width: 80, height: 112)
             }
             Text("Karte")
                 .font(.caption2)
@@ -416,15 +498,19 @@ struct ScannerView: View {
     private func priceRow(_ result: ScanPageResult) -> some View {
         let priceState = priceStates[result.id]
         HStack(spacing: 8) {
-            Image(systemName: "eurosign.circle")
+            Image(systemName: "eurosign.circle.fill")
+                .foregroundStyle(AppTheme.gold)
             if let priceState, priceState.isLoading {
-                ProgressView().controlSize(.small)
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(AppTheme.accent)
                 Text("Preis wird geladen …")
                     .foregroundStyle(.secondary)
             } else if let point = priceState?.primary(printing: .normal) {
                 Text(PriceFormatting.currency(point.amount, code: point.currency))
                     .fontWeight(.semibold)
                     .monospacedDigit()
+                    .foregroundStyle(AppTheme.ink)
                 Text(point.metric.displayName)
                     .foregroundStyle(.secondary)
             } else {
@@ -445,19 +531,19 @@ struct ScannerView: View {
                     .lineLimit(1)
                 Text("\(match.brief.setName) · #\(match.brief.localId)")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.textSecondary)
                     .lineLimit(1)
             }
             Spacer(minLength: 0)
             Text("\(Int((match.score * 100).rounded())) %")
                 .font(.caption)
                 .monospacedDigit()
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
         .background(
-            RoundedRectangle(cornerRadius: AppTheme.cardRadiusSmall, style: .continuous)
+            RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
                 .fill(selected ? AppTheme.accent.opacity(0.14) : Color.white.opacity(0.04))
         )
     }
@@ -655,7 +741,6 @@ struct ScannerView: View {
         }
     }
 
-    /// Wird nach dem Speichern über das Formular (manuelle Suche) aufgerufen.
     @MainActor
     private func handleFormSave() {
         points.awardScanReward()
@@ -672,4 +757,29 @@ struct ScannerView: View {
             dismiss()
         }
     }
+}
+
+private struct SectionHeader: View {
+    let title: String
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(AppTheme.textSecondary)
+            Text(title.uppercased())
+                .font(.caption2.weight(.bold))
+                .tracking(1.0)
+                .foregroundStyle(AppTheme.textSecondary)
+            Spacer()
+        }
+        .padding(.horizontal)
+    }
+}
+
+#Preview {
+    ScannerView()
+        .environmentObject(PointsStore())
+        .modelContainer(for: [Card.self, CardVariant.self, CollectionItem.self], inMemory: true)
 }

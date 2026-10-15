@@ -17,16 +17,20 @@ struct CardDetailView: View {
                 priceSection
                 notesSection
             }
-            .padding()
+            .padding(20)
+            .padding(.bottom, 30)
         }
+        .background(AppTheme.appBackground.ignoresSafeArea())
         .navigationTitle(card?.name ?? "Karte")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Bearbeiten") { showingEdit = true }
+                    .font(.headline.weight(.semibold))
             }
             ToolbarItem(placement: .secondaryAction) {
                 NavigationLink("Zustand") { ConditionPreviewView(item: item) }
+                    .font(.headline.weight(.semibold))
             }
         }
         .sheet(isPresented: $showingEdit) {
@@ -35,39 +39,65 @@ struct CardDetailView: View {
     }
 
     private var cardImage: some View {
-        AsyncImage(url: card?.imageURL) { phase in
-            switch phase {
-            case .success(let image):
-                image.resizable().scaledToFit()
-            case .failure:
-                imagePlaceholder(systemName: "photo.badge.exclamationmark")
-            case .empty:
-                ZStack {
-                    imagePlaceholder(systemName: "photo")
-                    ProgressView()
+        ZStack {
+            if let url = card?.imageURL {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFit()
+                    case .failure:
+                        imagePlaceholder(systemName: "photo.badge.exclamationmark")
+                    case .empty:
+                        ZStack {
+                            imagePlaceholder(systemName: "photo")
+                            ProgressView()
+                        }
+                    @unknown default:
+                        imagePlaceholder(systemName: "photo")
+                    }
                 }
-            @unknown default:
+            } else {
                 imagePlaceholder(systemName: "photo")
             }
+            glossOverlay
         }
         .frame(maxWidth: .infinity)
         .frame(maxHeight: 420)
-        .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(Color.black.opacity(0.30), in: RoundedRectangle(cornerRadius: AppTheme.cardRadius))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius))
+    }
+
+    private var glossOverlay: some View {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(0.25),
+                Color.white.opacity(0.05),
+                Color.black.opacity(0.15)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius))
+        .blendMode(.overlay)
+        .allowsHitTesting(false)
     }
 
     private func imagePlaceholder(systemName: String) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.1))
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius)
+                .fill(Color.white.opacity(0.08))
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius)
+                .strokeBorder(AppTheme.stroke, lineWidth: 1)
             Image(systemName: systemName)
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 44))
+                .foregroundStyle(AppTheme.textSecondary)
         }
     }
 
     private var detailsSection: some View {
-        GroupBox("Karte") {
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader("Karte")
+            VStack(alignment: .leading, spacing: 12) {
                 detailRow("Set", "\(card?.setName ?? "–") (\(card?.setId ?? "–"))")
                 detailRow("Nummer", "#\(card?.localId ?? "–")")
                 detailRow("Seltenheit", card?.rarity ?? "–")
@@ -83,12 +113,40 @@ struct CardDetailView: View {
                     detailRow("Kaufdatum", purchaseDate.formatted(date: .abbreviated, time: .omitted))
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                    .fill(AppTheme.elevated)
+                    .overlay(AppTheme.glossyCardGradient
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                        .blendMode(.overlay)
+                        .opacity(0.3))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                    .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+            )
         }
     }
 
     private var priceSection: some View {
-        PriceSectionView(printing: variant?.printing ?? .normal, points: pricePoints)
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("Preise")
+            PriceSectionView(printing: variant?.printing ?? .normal, points: pricePoints)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                .fill(AppTheme.elevated)
+                .overlay(AppTheme.glossyCardGradient
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                    .blendMode(.overlay)
+                    .opacity(0.3))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+        )
     }
 
     private var pricePoints: [PricePoint] {
@@ -109,21 +167,43 @@ struct CardDetailView: View {
     }
 
     private var notesSection: some View {
-        GroupBox("Notizen") {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("Notizen")
             Text(item.notes.isEmpty ? "Keine Notizen." : item.notes)
                 .font(.body)
-                .foregroundStyle(item.notes.isEmpty ? .secondary : .primary)
+                .foregroundStyle(item.notes.isEmpty ? AppTheme.textSecondary : AppTheme.ink)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                .fill(AppTheme.elevated)
+                .overlay(AppTheme.glossyCardGradient
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                    .blendMode(.overlay)
+                    .opacity(0.3))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+        )
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title.uppercased())
+            .font(.caption2.weight(.bold))
+            .tracking(1.2)
+            .foregroundStyle(AppTheme.textSecondary)
     }
 
     private func detailRow(_ label: String, _ value: String) -> some View {
         HStack(alignment: .firstTextBaseline) {
             Text(label)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
             Spacer()
             Text(value)
                 .multilineTextAlignment(.trailing)
+                .foregroundStyle(AppTheme.ink)
         }
     }
 
@@ -134,4 +214,9 @@ struct CardDetailView: View {
         formatter.locale = Locale(identifier: "de_DE")
         return formatter.string(from: value as NSDecimalNumber) ?? "\(value)"
     }
+}
+
+#Preview {
+    CardDetailView(item: CollectionItem(quantity: 1, confirmedCondition: .nearMint))
+        .modelContainer(for: [Card.self, CardVariant.self, CollectionItem.self, PriceSnapshot.self, ScanRecord.self, ConditionAssessment.self], inMemory: true)
 }

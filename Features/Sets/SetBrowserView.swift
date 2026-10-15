@@ -6,7 +6,7 @@ struct SetBrowserView: View {
     @State private var searchMode: SearchMode = .number
 
     private let allSets = PokemonCatalog.sets
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
 
     private var visibleSets: [CatalogSet] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -27,16 +27,20 @@ struct SetBrowserView: View {
         NavigationStack {
             Group {
                 if allSets.isEmpty {
-                    ContentUnavailableView(
-                        "Kein Katalog",
-                        systemImage: "square.grid.2x2",
-                        description: Text("Der Offline-Katalog wurde nicht gefunden.")
+                    emptyState(
+                        icon: "square.grid.2x2",
+                        title: "Kein Katalog",
+                        subtitle: "Der Offline-Katalog wurde nicht gefunden."
                     )
                 } else if visibleSets.isEmpty {
-                    ContentUnavailableView.search(text: searchText)
+                    emptyState(
+                        icon: "magnifyingglass",
+                        title: "Keine Treffer",
+                        subtitle: "Passe deine Suche an."
+                    )
                 } else {
                     ScrollView {
-                        LazyVGrid(columns: columns, spacing: 10) {
+                        LazyVGrid(columns: columns, spacing: AppTheme.gridSpacing) {
                             ForEach(visibleSets) { set in
                                 NavigationLink {
                                     SetDetailView(set: set)
@@ -51,7 +55,8 @@ struct SetBrowserView: View {
                 }
             }
             .navigationTitle("Alle Sets")
-            .searchable(text: $searchText, prompt: searchMode.placeholder)
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "Set suchen")
             .onChange(of: searchText) { _, text in
                 if text.isEmpty { searchMode = .number }
             }
@@ -74,7 +79,25 @@ struct SetBrowserView: View {
             .toolbarBackground(AppTheme.backgroundTop, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            .background(AppTheme.appBackground.ignoresSafeArea())
         }
+    }
+
+    private func emptyState(icon: String, title: String, subtitle: String) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 56))
+                .foregroundStyle(AppTheme.textTertiary)
+            Text(title)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(AppTheme.ink)
+            Text(subtitle)
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(40)
     }
 }
 
@@ -86,45 +109,67 @@ private struct SetGridCell: View {
     }
 
     var body: some View {
-        VStack(spacing: 6) {
-            AsyncImage(url: thumbnailURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFit()
-                case .failure:
-                    placeholder
-                case .empty:
-                    ZStack { placeholder; ProgressView() }
-                @unknown default:
-                    placeholder
+        VStack(alignment: .leading, spacing: 10) {
+            ZStack {
+                AsyncImage(url: thumbnailURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .failure:
+                        placeholder
+                    case .empty:
+                        ZStack { placeholder; ProgressView() }
+                    @unknown default:
+                        placeholder
+                    }
+                }
+                .aspectRatio(0.72, contentMode: .fill)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.smallCardRadius, style: .continuous))
+
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Text("\(set.cards.count)")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(.black.opacity(0.5), in: Capsule())
+                    }
+                    .padding(8)
                 }
             }
-            .aspectRatio(0.72, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
             Text(set.name)
-                .font(.caption2.weight(.semibold))
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.ink)
-                .frame(maxWidth: .infinity)
-
-            Text("\(set.cards.count)")
-                .font(.caption2)
-                .foregroundStyle(AppTheme.textSecondary)
+                .lineLimit(2)
         }
-        .surfaceCard(radius: AppTheme.cardRadiusSmall, padding: 6)
-        .card3D(maxTilt: 8)
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .fill(AppTheme.elevated)
+                .overlay(AppTheme.glossyCardGradient
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+                    .blendMode(.overlay)
+                    .opacity(0.4))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.3), radius: 12, y: 6)
     }
 
     private var placeholder: some View {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .fill(AppTheme.goldGradient)
+        RoundedRectangle(cornerRadius: AppTheme.smallCardRadius, style: .continuous)
+            .fill(Color.white.opacity(0.06))
             .aspectRatio(0.72, contentMode: .fit)
             .overlay {
                 Image(systemName: "rectangle.stack.fill")
                     .font(.title3)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.textSecondary)
             }
     }
 }
@@ -136,7 +181,7 @@ struct SetDetailView: View {
     @State private var searchMode: SearchMode = .number
     @State private var selected: CatalogCard?
 
-    private let columns = [GridItem(.adaptive(minimum: 108), spacing: 10)]
+    private let columns = [GridItem(.adaptive(minimum: 120), spacing: AppTheme.gridSpacing)]
 
     private var visibleCards: [CatalogCard] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -173,7 +218,7 @@ struct SetDetailView: View {
         .background(AppTheme.appBackground.ignoresSafeArea())
         .navigationTitle(set.name)
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: searchMode.placeholder)
+        .searchable(text: $searchText, prompt: "Karte suchen")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Picker("Suchmodus", selection: $searchMode) {
@@ -198,39 +243,66 @@ private struct CatalogCardCell: View {
     let card: CatalogCard
 
     var body: some View {
-        VStack(spacing: 4) {
-            AsyncImage(url: card.thumbnailURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFit()
-                case .failure:
-                    placeholder
-                case .empty:
-                    ZStack { placeholder; ProgressView() }
-                @unknown default:
-                    placeholder
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack {
+                AsyncImage(url: card.thumbnailURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .failure:
+                        placeholder
+                    case .empty:
+                        ZStack { placeholder; ProgressView() }
+                    @unknown default:
+                        placeholder
+                    }
+                }
+                .aspectRatio(0.72, contentMode: .fill)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.smallCardRadius, style: .continuous))
+
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Text("#\(card.localId)")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(.black.opacity(0.5), in: Capsule())
+                    }
+                    .padding(6)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
             Text(card.name)
-                .font(.caption2.weight(.semibold))
-                .lineLimit(1)
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.ink)
-            Text("#\(card.localId)")
-                .font(.caption2)
-                .foregroundStyle(AppTheme.textSecondary)
+                .lineLimit(2)
         }
-        .surfaceCard(radius: AppTheme.cardRadiusSmall, padding: 6)
-        .card3D(maxTilt: 10)
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .fill(AppTheme.elevated)
+                .overlay(AppTheme.glossyCardGradient
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+                    .blendMode(.overlay)
+                    .opacity(0.4))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.3), radius: 10, y: 5)
     }
 
     private var placeholder: some View {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
+        RoundedRectangle(cornerRadius: AppTheme.smallCardRadius, style: .continuous)
             .fill(Color.white.opacity(0.06))
             .aspectRatio(0.72, contentMode: .fit)
             .overlay {
                 Image(systemName: "photo")
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(AppTheme.textSecondary)
             }
     }
 }

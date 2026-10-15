@@ -14,12 +14,14 @@ struct LibraryView: View {
     @State private var activeSheet: LibrarySheet?
     @State private var isRefreshing = false
     @State private var refreshNote: String?
+    @State private var showingEmptyState = false
 
     private enum LibrarySheet: Identifiable {
         case scanner
         case add
 
-        var id: String {
+        var id: String { rawValue }
+        var rawValue: String {
             switch self {
             case .scanner: return "scanner"
             case .add: return "add"
@@ -35,43 +37,22 @@ struct LibraryView: View {
         filter.apply(to: realItems)
     }
 
-    private var isScannerPresented: Binding<Bool> {
-        Binding(
-            get: { activeSheet == .scanner },
-            set: { if !$0 { activeSheet = nil } }
-        )
-    }
-
-    private var isAddPresented: Binding<Bool> {
-        Binding(
-            get: { activeSheet == .add },
-            set: { if !$0 { activeSheet = nil } }
-        )
-    }
-
     var body: some View {
         NavigationStack {
             Group {
                 if realItems.isEmpty {
-                    ContentUnavailableView(
-                        "Keine Karten",
-                        systemImage: "rectangle.stack.badge.plus",
-                        description: Text("Füge deine erste Karte über das Plus-Symbol hinzu.")
-                    )
+                    emptyLibraryState
                 } else if visibleItems.isEmpty {
-                    ContentUnavailableView(
-                        "Keine Treffer",
-                        systemImage: "magnifyingglass",
-                        description: Text("Passe Suche oder Filter an.")
-                    )
+                    emptySearchState
                 } else {
                     content
                 }
             }
             .navigationTitle("Sammlung")
-            .searchable(text: $filter.searchText, prompt: filter.searchMode.placeholder)
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $filter.searchText, prompt: "Karte oder Set suchen")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Picker("Suchmodus", selection: $filter.searchMode) {
                         ForEach(LibrarySearchMode.allCases) { mode in
                             Text(mode.displayName).tag(mode)
@@ -108,12 +89,13 @@ struct LibraryView: View {
                         }
                     } label: {
                         Label("Konto", systemImage: "person.crop.circle")
+                            .font(.headline)
                     }
                 }
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Label("\(points.balance) P", systemImage: "point.3.connected.trianglepath.dotted")
                         .labelStyle(.titleAndIcon)
-                        .padding(.horizontal, 8)
+                        .padding(.horizontal, 10)
                         .padding(.vertical, 6)
                         .background(Color.secondary.opacity(0.12), in: Capsule())
                         .font(.caption)
@@ -123,21 +105,37 @@ struct LibraryView: View {
                     Button {
                         activeSheet = .scanner
                     } label: {
-                        Label("Scannen", systemImage: "camera.viewfinder")
+                        Image(systemName: "camera.viewfinder")
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: AppTheme.minTouchTarget, height: AppTheme.minTouchTarget)
+                            .background(AppTheme.brandGradient, in: Circle())
+                            .shadow(color: AppTheme.accent.opacity(0.5), radius: 12, y: 6)
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         activeSheet = .add
                     } label: {
-                        Label("Hinzufügen", systemImage: "plus")
+                        Image(systemName: "plus")
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: AppTheme.minTouchTarget, height: AppTheme.minTouchTarget)
+                            .background(AppTheme.accent, in: Circle())
+                            .shadow(color: AppTheme.accent.opacity(0.5), radius: 12, y: 6)
                     }
                 }
             }
-            .fullScreenCover(isPresented: isScannerPresented) {
+            .fullScreenCover(isPresented: Binding(
+                get: { activeSheet == .scanner },
+                set: { if !$0 { activeSheet = nil } }
+            )) {
                 ScannerView()
             }
-            .sheet(isPresented: isAddPresented) {
+            .sheet(isPresented: Binding(
+                get: { activeSheet == .add },
+                set: { if !$0 { activeSheet = nil } }
+            )) {
                 AddEditCardView(mode: .add)
             }
             .onAppear {
@@ -157,12 +155,71 @@ struct LibraryView: View {
         }
     }
 
+    // MARK: - Leer-Zustände
+
+    private var emptyLibraryState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "rectangle.stack.badge.plus")
+                .font(.system(size: 64))
+                .foregroundStyle(AppTheme.textTertiary)
+            Text("Deine Sammlung ist noch leer")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(AppTheme.ink)
+            Text("Scanne oder füge deine erste Pokémon-Karte hinzu.")
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+            VStack(spacing: 10) {
+                Button {
+                    activeSheet = .scanner
+                } label: {
+                    Label("Karte scannen", systemImage: "camera.viewfinder")
+                        .font(.headline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(BrandButtonStyle())
+
+                Button {
+                    activeSheet = .add
+                } label: {
+                    Label("Manuell hinzufügen", systemImage: "plus.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                }
+                .buttonStyle(GlassButtonStyle())
+            }
+            .padding(.horizontal, 40)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(30)
+    }
+
+    private var emptySearchState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 56))
+                .foregroundStyle(AppTheme.textTertiary)
+            Text("Keine Treffer")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(AppTheme.ink)
+            Text("Passe deine Suche oder Filter an.")
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(30)
+    }
+
+    // MARK: - Inhalt
+
     private var content: some View {
         VStack(spacing: 0) {
             valueSummary
             filterBar
             ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: AppTheme.gridSpacing)], spacing: AppTheme.gridSpacing) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: AppTheme.gridSpacing)], spacing: AppTheme.gridSpacing) {
                     ForEach(visibleItems) { item in
                         NavigationLink {
                             CardDetailView(item: item)
@@ -175,12 +232,13 @@ struct LibraryView: View {
                                 context.delete(item)
                                 try? context.save()
                             } label: {
-                                Label("Löschen", systemImage: "trash")
+                                Label("Löschen", systemImage: "trash.fill")
                             }
                         }
                     }
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.bottom, 20)
                 .animation(AppTheme.Motion.smooth, value: visibleItems.count)
             }
         }
@@ -189,14 +247,14 @@ struct LibraryView: View {
 
     private var filterBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Menu {
                     Button("Alle Sprachen") { filter.language = nil }
                     ForEach(Language.allCases) { language in
                         Button(language.displayName) { filter.language = language }
                     }
                 } label: {
-                    filterChip(title: "Sprache", value: filter.language?.displayName ?? "Alle")
+                    filterChip(title: "Sprache", value: filter.language?.displayName ?? "Alle", icon: "globe")
                 }
 
                 Menu {
@@ -205,7 +263,7 @@ struct LibraryView: View {
                         Button(condition.displayName) { filter.condition = condition }
                     }
                 } label: {
-                    filterChip(title: "Zustand", value: filter.condition?.displayName ?? "Alle")
+                    filterChip(title: "Zustand", value: filter.condition?.displayName ?? "Alle", icon: "checkmark.shield")
                 }
 
                 Menu {
@@ -213,25 +271,31 @@ struct LibraryView: View {
                         Button(sort.displayName) { filter.sort = sort }
                     }
                 } label: {
-                    filterChip(title: "Sortierung", value: filter.sort.displayName)
+                    filterChip(title: "Sortierung", value: filter.sort.displayName, icon: "arrow.up.arrow.down")
                 }
             }
             .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.vertical, 10)
         }
+        .background(AppTheme.elevated.opacity(0.5))
     }
 
-    private func filterChip(title: String, value: String) -> some View {
-        HStack(spacing: 4) {
+    private func filterChip(title: String, value: String, icon: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption2)
+                .foregroundStyle(AppTheme.textSecondary)
             Text(value)
-                .font(.subheadline)
-                .fontWeight(.medium)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(AppTheme.ink)
             Image(systemName: "chevron.down")
                 .font(.caption2)
+                .foregroundStyle(AppTheme.textSecondary)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Color.secondary.opacity(0.15), in: Capsule())
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.08), in: Capsule())
+        .overlay(Capsule().strokeBorder(AppTheme.stroke, lineWidth: 1))
     }
 
     // MARK: - Preise
@@ -263,8 +327,7 @@ struct LibraryView: View {
                             .font(.caption)
                             .foregroundStyle(AppTheme.textSecondary)
                         Text(PriceFormatting.currency(value.total, code: value.currency))
-                            .font(.title3)
-                            .fontWeight(.semibold)
+                            .font(.title3.weight(.bold))
                             .foregroundStyle(AppTheme.ink)
                     }
                     Spacer()
@@ -330,6 +393,7 @@ struct LibraryView: View {
 #Preview {
     LibraryView()
         .environmentObject(AuthStore())
+        .environmentObject(PointsStore())
         .modelContainer(PreviewData.container)
 }
 

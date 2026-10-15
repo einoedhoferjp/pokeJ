@@ -31,8 +31,21 @@ struct CollectionItemCard: View {
                 }
             }
         }
-        .glossyCard()
-        .card3D()
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .fill(AppTheme.elevated)
+                .overlay(AppTheme.glossyCardGradient
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+                    .blendMode(.overlay)
+                    .opacity(0.5))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.35), radius: 14, y: 8)
+        .card3D(maxTilt: 8, pressedScale: 1.02)
     }
 
     private var subtitle: String {
@@ -76,7 +89,6 @@ struct CollectionItemCard: View {
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.smallCardRadius))
     }
 
-    /// Glossy-Glanz-Overlay für moderne Kartenoberfläche.
     private var glossOverlay: some View {
         LinearGradient(
             colors: [
@@ -102,33 +114,5 @@ struct CollectionItemCard: View {
                 .font(.largeTitle)
                 .foregroundStyle(AppTheme.textSecondary)
         }
-    }
-}
-
-/// Glossy-Karten-Container mit sanftem Glanz und Tiefe.
-private struct GlossyCardModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .padding(8)
-            .background(
-                RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                    .fill(AppTheme.elevated)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                            .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
-                    )
-                    .overlay(AppTheme.glossyCardGradient
-                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
-                        .blendMode(.overlay)
-                        .opacity(0.5)
-                    )
-            )
-            .shadow(color: .black.opacity(0.45), radius: 16, y: 10)
-    }
-}
-
-extension View {
-    func glossyCard() -> some View {
-        modifier(GlossyCardModifier())
     }
 }
