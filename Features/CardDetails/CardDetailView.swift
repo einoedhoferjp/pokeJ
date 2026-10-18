@@ -16,6 +16,7 @@ struct CardDetailView: View {
                 detailsSection
                 priceSection
                 notesSection
+                conditionTimelineSection
             }
             .padding(20)
             .padding(.bottom, 30)
@@ -129,6 +130,34 @@ struct CardDetailView: View {
         }
     }
 
+    /// Verlauf aller Zustandsbewertungen dieses Exemplars (neueste zuerst).
+    @ViewBuilder
+    private var conditionTimelineSection: some View {
+        let assessments = item.assessments.sorted { $0.assessedAt > $1.assessedAt }
+        if !assessments.isEmpty {
+            VStack(alignment: .leading, spacing: 16) {
+                sectionHeader("Zustands-Verlauf")
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(assessments.enumerated()), id: \.element.id) { index, assessment in
+                        ConditionTimelineRow(
+                            assessment: assessment,
+                            isLast: index == assessments.count - 1
+                        )
+                    }
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                        .fill(AppTheme.elevated)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                        .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
+                )
+            }
+        }
+    }
+
     private var priceSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             sectionHeader("Preise")
@@ -213,6 +242,67 @@ struct CardDetailView: View {
         formatter.currencyCode = "EUR"
         formatter.locale = Locale(identifier: "de_DE")
         return formatter.string(from: value as NSDecimalNumber) ?? "\(value)"
+    }
+}
+
+/// Eine Zeile in der Zustands-Verlaufstimeline.
+private struct ConditionTimelineRow: View {
+    let assessment: ConditionAssessment
+    let isLast: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(spacing: 2) {
+                Circle()
+                    .fill(dotColor)
+                    .frame(width: 10, height: 10)
+                    .overlay(Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1))
+                if !isLast {
+                    Rectangle()
+                        .fill(AppTheme.surfaceStroke)
+                        .frame(width: 2)
+                    Spacer(minLength: 0)
+                }
+            }
+            .frame(maxHeight: .infinity, alignment: .top)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(assessment.assessedAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.textSecondary)
+                    Spacer()
+                    if assessment.confirmedCondition != nil {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.caption2)
+                            .foregroundStyle(AppTheme.mint)
+                    }
+                }
+                HStack(spacing: 6) {
+                    Text(assessment.estimatedCondition.displayName)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.ink)
+                    if let confirmed = assessment.confirmedCondition {
+                        Image(systemName: "arrow.right")
+                            .font(.caption2)
+                            .foregroundStyle(AppTheme.textSecondary)
+                        Text(confirmed.displayName)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.mint)
+                    }
+                }
+                if !assessment.detectedDefects.isEmpty {
+                    Text("Mängel: \(assessment.detectedDefects)")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+            }
+            .padding(.bottom, isLast ? 0 : 12)
+        }
+    }
+
+    private var dotColor: Color {
+        assessment.confirmedCondition == nil ? AppTheme.gold : AppTheme.mint
     }
 }
 

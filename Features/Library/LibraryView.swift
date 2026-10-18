@@ -34,7 +34,9 @@ struct LibraryView: View {
     }
 
     private var visibleItems: [CollectionItem] {
-        filter.apply(to: realItems)
+        var effective = filter
+        effective.marketPrices = CollectionStats.unitPrices(items: realItems, snapshots: allSnapshots)
+        return effective.apply(to: realItems)
     }
 
     var body: some View {
@@ -228,6 +230,28 @@ struct LibraryView: View {
                         }
                         .buttonStyle(PressableCardStyle())
                         .contextMenu {
+                            Menu {
+                                ForEach(CardCondition.allCases) { condition in
+                                    Button {
+                                        setCondition(item, to: condition)
+                                    } label: {
+                                        Label(condition.displayName, systemImage: item.confirmedCondition == condition ? "checkmark" : condition.systemImage)
+                                    }
+                                }
+                            } label: {
+                                Label("Zustand ändern", systemImage: "checkmark.shield")
+                            }
+                            Button {
+                                duplicate(item)
+                            } label: {
+                                Label("Duplikat hinzufügen (+1)", systemImage: "plus.square.on.square")
+                            }
+                            Button {
+                                item.purchaseDate = .now
+                                try? context.save()
+                            } label: {
+                                Label("Kaufdatum auf heute setzen", systemImage: "calendar.badge.plus")
+                            }
                             Button(role: .destructive) {
                                 context.delete(item)
                                 try? context.save()
@@ -278,6 +302,18 @@ struct LibraryView: View {
             .padding(.vertical, 10)
         }
         .background(AppTheme.elevated.opacity(0.5))
+    }
+
+    /// Setzt den bestätigten Zustand direkt aus dem Kontextmenü heraus.
+    private func setCondition(_ item: CollectionItem, to condition: CardCondition) {
+        item.confirmedCondition = condition
+        try? context.save()
+    }
+
+    /// Legt ein weiteres Exemplar derselben Karte an (QoL: Duplikat +1).
+    private func duplicate(_ item: CollectionItem) {
+        item.quantity += 1
+        try? context.save()
     }
 
     private func filterChip(title: String, value: String, icon: String) -> some View {
@@ -399,7 +435,7 @@ struct LibraryView: View {
 
 enum PreviewData {
     static let container: ModelContainer = {
-        let schema = Schema([Card.self, CardVariant.self, CollectionItem.self, PriceSnapshot.self, ScanRecord.self, ConditionAssessment.self])
+        let schema = Schema([Card.self, CardVariant.self, CollectionItem.self, PriceSnapshot.self, ScanRecord.self, ConditionAssessment.self, WishCard.self])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         do {
             return try ModelContainer(for: schema, configurations: [configuration])

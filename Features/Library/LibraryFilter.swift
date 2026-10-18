@@ -10,7 +10,7 @@ enum LibrarySort: String, CaseIterable, Identifiable {
         switch self {
         case .dateAdded: return "Zuletzt hinzugefügt"
         case .name: return "Name"
-        case .price: return "Preis"
+        case .price: return "Wert (Markt/Kauf)"
         case .set: return "Set"
         }
     }
@@ -25,6 +25,9 @@ struct LibraryFilter: Equatable {
     var language: Language?
     var condition: CardCondition?
     var sort: LibrarySort = .dateAdded
+    /// Marktwerte je Karte (externId → Preis), um nach Marktwert sortieren zu
+    /// können, ohne die Logik an SwiftData zu koppeln.
+    var marketPrices: [String: Decimal] = [:]
 
     func apply(to items: [CollectionItem]) -> [CollectionItem] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -43,10 +46,19 @@ struct LibraryFilter: Equatable {
         case .set:
             result.sort { setName(of: $0).localizedCaseInsensitiveCompare(setName(of: $1)) == .orderedAscending }
         case .price:
-            result.sort { ($0.purchasePrice ?? 0) > ($1.purchasePrice ?? 0) }
+            result.sort { value(of: $0) > value(of: $1) }
         }
 
         return result
+    }
+
+    /// Marktwert der Karte; fallback auf den Kaufpreis, wenn kein Marktpreis
+    /// vorliegt (dann ohne Sortiergewicht).
+    private func value(of item: CollectionItem) -> Decimal {
+        if let externalId = item.variant?.card?.externalId, let market = marketPrices[externalId] {
+            return market
+        }
+        return item.purchasePrice ?? 0
     }
 
     private func cardName(of item: CollectionItem) -> String {

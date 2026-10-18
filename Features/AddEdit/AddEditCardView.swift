@@ -34,8 +34,8 @@ struct AddEditCardView: View {
     @State private var saveError: String?
     @State private var didSave = false
 
-    @State private var language: Language = .de
-    @State private var printing: Printing = .normal
+    @State private var language: Language = AddEditCardView.storedLanguage
+    @State private var printing: Printing = AddEditCardView.storedPrinting
     @State private var condition: CardCondition = .nearMint
     @State private var quantity = 1
     @State private var mergeDuplicates = true
@@ -43,6 +43,29 @@ struct AddEditCardView: View {
     @State private var hasPurchaseDate = false
     @State private var purchaseDate = Date()
     @State private var notes = ""
+
+    // MARK: - Gemerkte letzte Auswahl (Sprache & Druck)
+
+    private static let languageDefaultsKey = "pokej.add.lastLanguage"
+    private static let printingDefaultsKey = "pokej.add.lastPrinting"
+
+    /// Zuletzt gespeicherte Sprache – wird als Vorauswahl übernommen.
+    static var storedLanguage: Language {
+        guard let raw = UserDefaults.standard.string(forKey: languageDefaultsKey) else { return .de }
+        return Language(rawValue: raw) ?? .de
+    }
+
+    /// Zuletzt gespeicherter Druck – wird als Vorauswahl übernommen.
+    static var storedPrinting: Printing {
+        guard let raw = UserDefaults.standard.string(forKey: printingDefaultsKey) else { return .normal }
+        return Printing(rawValue: raw) ?? .normal
+    }
+
+    /// Merkt sich die aktuelle Auswahl für die nächste Erfassung.
+    private func rememberSelection() {
+        UserDefaults.standard.set(language.rawValue, forKey: Self.languageDefaultsKey)
+        UserDefaults.standard.set(printing.rawValue, forKey: Self.printingDefaultsKey)
+    }
 
     private var isEdit: Bool {
         if case .edit = mode { return true }
@@ -476,6 +499,7 @@ struct AddEditCardView: View {
             return
         }
 
+        rememberSelection()
         didSave = true
         let completion = onSaved
         dismiss()

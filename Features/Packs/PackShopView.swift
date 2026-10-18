@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 /// Shop für fiktive Booster: Punkte-Guthaben, Tagesbonus, Kauf & Öffnen.
@@ -5,10 +6,37 @@ import SwiftUI
 /// nur Karten aus diesem Set.
 struct PackShopView: View {
     @EnvironmentObject private var points: PointsStore
+    @Query(sort: \CollectionItem.createdAt, order: .reverse) private var items: [CollectionItem]
+    @Query(sort: \ScanRecord.timestamp, order: .reverse) private var scans: [ScanRecord]
 
     @State private var opening: PackOpening?
     @State private var bonusNote: String?
     @State private var searchText = ""
+
+    /// Exemplare aus Scans (echte Sammlung) für die Abzeichen-Vorschau.
+    private var realItems: [CollectionItem] {
+        items.filter { $0.origin == .scanned }
+    }
+
+    private var achievements: [Achievement] {
+        Achievements.all(
+            points: points,
+            cardCount: CollectionStats.totalQuantity(realItems),
+            scanCount: scans.count
+        )
+    }
+
+    private var unlockedAchievements: [Achievement] {
+        achievements.filter(\.isUnlocked)
+    }
+
+    /// Ø Holo-Quote über alle gezogenen Karten, in Prozent.
+    private var holoRatePercent: Int? {
+        guard points.totalCardsPulled > 0 else { return nil }
+        return Int(
+            (Double(points.totalHolosPulled) / Double(points.totalCardsPulled) * 100).rounded()
+        )
+    }
 
     private var groups: [PackEraGroup] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -28,11 +56,15 @@ struct PackShopView: View {
                 VStack(spacing: 20) {
                     balanceSection
                     explanationSection
+                    if points.totalOpenings > 0 {
+                        statsSection
+                    }
                     classicSection
                     catalogSections
                     if !points.recentOpenings.isEmpty {
                         historySection
                     }
+                    achievementsSection
                 }
                 .padding()
                 .padding(.bottom, 30)
@@ -64,20 +96,32 @@ struct PackShopView: View {
             }
             Button {
                 if points.claimDailyBonus() {
-                    bonusNote = "Tagesbonus eingelöst: +\(PointsStore.dailyBonus) Punkte."
+                    bonusNote = "Tagesbonus eingelöst: +\(points.streak > 1 ? points.nextDailyBonus : PointsStore.dailyBonus) Punkte."
                 }
             } label: {
-                Label(
-                    points.canClaimDailyBonus
-                        ? "Tagesbonus abholen (+\(PointsStore.dailyBonus))"
-                        : "Tagesbonus heute schon abgeholt",
-                    systemImage: "sun.max.fill"
-                )
-                .font(.subheadline.weight(.medium))
+                VStack(spacing: 4) {
+                    Label(
+                        points.canClaimDailyBonus
+                            ? "Tagesbonus abholen (+\(points.nextDailyBonus))"
+                            : "Tagesbonus heute schon abgeholt",
+                        systemImage: "sun.max.fill"
+                    )
+                    .font(.subheadline.weight(.medium))
+                    if points.streak > 0 {
+                        Label(
+                            points.canClaimDailyBonus
+                                ? "Serie: \(points.streak) Tage – heute \(points.nextDailyBonus) statt \(PointsStore.dailyBonus)"
+                                : "Serie: \(points.streak) Tage in Folge",
+                            systemImage: "flame.fill"
+                        )
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(points.canClaimDailyBonus ? AppTheme.coral : AppTheme.textSecondary)
+                    }
+                }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
             }
-            .buttonStyle(GlassButtonStyle())
+            .buttonStyle(points.canClaimDailyBonus ? AnyButtonStyle(BrandButtonStyle()) : AnyButtonStyle(GlassButtonStyle()))
             .disabled(!points.canClaimDailyBonus)
             .opacity(points.canClaimDailyBonus ? 1 : 0.6)
         }
@@ -90,6 +134,14 @@ struct PackShopView: View {
                     .blendMode(.overlay)
                     .opacity(0.4))
         )
+        .overlay(alignment: .topTrailing) {
+            // Verspielter Poké-Ball-Wasserzeichen als Marken-Signatur.
+            PokeballMark()
+                .frame(width: 92, height: 92)
+                .opacity(0.07)
+                .offset(x: 14, y: 6)
+                .allowsHitTesting(false)
+        }
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
                 .strokeBorder(AppTheme.surfaceStroke, lineWidth: 1)
@@ -231,6 +283,93 @@ struct PackShopView: View {
                 .padding(.vertical, 8)
                 .background(AppTheme.elevatedAlt, in: RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous).strokeBorder(AppTheme.stroke, lineWidth: 1))
+            }
+        }
+    }
+
+    /// Zug-Statistik: wie oft geöffnet, wie viele Karten, Holo-Quote.
+    private var statsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            PokedexSectionHeader(title: "Deine Zug-Statistik", systemImage: "chart.bar.fill")
+            HStack(spacing: 10) {
+                statChip(
+                    icon: "gift.fill",
+                    tint: AppTheme.coral,
+                    value: "\(points.totalOpenings)",
+                    label: "Booster"
+                )
+                statChip(
+                    icon: "rectangle.stack.fill",
+                    tint: AppTheme.accent,
+                    value: "\(points.totalCardsPulled)",
+                    label: "Karten"
+                )
+                statChip(
+                    icon: "sparkles",
+                    tint: AppTheme.gold,
+                    value: holoRatePercent.map { "\($0) %" } ?? "–",
+                    label: "Holo-Quote"
+                )
+            }
+        }
+    }
+
+    private func statChip(icon: String, tint: Color, value: String, label: String) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(tint)
+            Text(value)
+                .font(.headline.weight(.bold))
+                .monospacedDigit()
+                .foregroundStyle(AppTheme.ink)
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(AppTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                .fill(AppTheme.elevated)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
+                .strokeBorder(tint.opacity(0.25), lineWidth: 1)
+        )
+    }
+
+    /// Abzeichen-Vorschau mit Link zur vollständigen Übersicht.
+    private var achievementsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                PokedexSectionHeader(title: "Abzeichen", systemImage: "trophy.fill")
+                Spacer()
+                NavigationLink {
+                    AchievementsView()
+                } label: {
+                    Text("Alle \(achievements.count)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.gold)
+                }
+            }
+            if unlockedAchievements.isEmpty {
+                Text("Scanne Karten und öffne Booster, um deine ersten Abzeichen freizuschalten.")
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(AppTheme.elevatedAlt, in: RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous).strokeBorder(AppTheme.stroke, lineWidth: 1))
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 14) {
+                        ForEach(unlockedAchievements) { achievement in
+                            AchievementBadge(achievement: achievement, compact: true)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
             }
         }
     }

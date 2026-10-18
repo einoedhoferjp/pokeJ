@@ -28,6 +28,10 @@ final class PointsStore: ObservableObject {
     static let startingBalance = 999_999
     static let scanRewardPerCard = 50
     static let dailyBonus = 50
+    /// Zusatzpunkte pro Folgetag der Tagesbonus-Serie (max. 6 Stapel).
+    static let dailyBonusStreakStep = 10
+    /// Maximale Anzahl gestapelter Serien-Boni.
+    static let maxDailyBonusStreakStacks = 6
     /// Obergrenze für Testguthaben im Diagnose-Menü.
     static let maximumBalance = 999_999
     /// Anzeigedauer der Belohnungs-Snackbar in Sekundenbruchteilen.
@@ -35,6 +39,14 @@ final class PointsStore: ObservableObject {
 
     @Published private(set) var balance: Int
     @Published private(set) var recentOpenings: [PackOpeningEvent]
+    /// Aktuelle Tagesbonus-Serie (aufeinanderfolgende Tage ohne Lücke).
+    @Published private(set) var streak: Int
+    /// Gesamtzahl geöffneter Packs (auch jenseits des kurzen Verlaufs).
+    @Published private(set) var totalOpenings: Int
+    /// Gesamtzahl gezogener Karten aus Packs.
+    @Published private(set) var totalCardsPulled: Int
+    /// Gesamtzahl gezogener Holo-Karten aus Packs.
+    @Published private(set) var totalHolosPulled: Int
     /// Zuletzt gewährte Belohnung; `nil`, wenn keine Snackbar angezeigt wird.
     @Published private(set) var reward: RewardEvent?
 
@@ -63,6 +75,10 @@ final class PointsStore: ObservableObject {
         } else {
             self.recentOpenings = []
         }
+        self.streak = defaults.integer(forKey: prefix + "streak")
+        self.totalOpenings = defaults.integer(forKey: prefix + "totalOpenings")
+        self.totalCardsPulled = defaults.integer(forKey: prefix + "totalCardsPulled")
+        self.totalHolosPulled = defaults.integer(forKey: prefix + "totalHolosPulled")
     }
 
     /// Wechselt auf das Konto `username` (oder `nil` beim Abmelden) und lädt
@@ -86,6 +102,10 @@ final class PointsStore: ObservableObject {
         } else {
             recentOpenings = []
         }
+        streak = defaults.integer(forKey: prefix + "streak")
+        totalOpenings = defaults.integer(forKey: prefix + "totalOpenings")
+        totalCardsPulled = defaults.integer(forKey: prefix + "totalCardsPulled")
+        totalHolosPulled = defaults.integer(forKey: prefix + "totalHolosPulled")
         reward = nil
     }
 
@@ -120,13 +140,34 @@ final class PointsStore: ObservableObject {
         return !Calendar.current.isDateInToday(lastDailyBonus)
     }
 
+    /// Bonus für die nächste Abholung: Grundbonus plus Serien-Aufstockung.
+    var nextDailyBonus: Int {
+        let nextStreak = projectedStreak(afterClaiming: .now)
+        let stacks = min(max(nextStreak - 1, 0), Self.maxDailyBonusStreakStacks)
+        return Self.dailyBonus + stacks * Self.dailyBonusStreakStep
+    }
+
+    /// Projektion der Serie nach einer Abholung heute (für die Anzeige).
+    private func projectedStreak(afterClaiming now: Date) -> Int {
+        guard let last = lastDailyBonus else { return 1 }
+        let calendar = Calendar.current
+        if calendar.isDateInYesterday(last) { return streak + 1 }
+        if calendar.isDateInToday(last) { return streak }
+        return 1
+    }
+
     @discardableResult
     func claimDailyBonus() -> Bool {
         guard canClaimDailyBonus else { return false }
+        let newStreak = projectedStreak(afterClaiming: .now)
+        streak = newStreak
+        defaults.set(newStreak, forKey: key("streak"))
         lastDailyBonus = .now
-        balance += Self.dailyBonus
+
+        let amount = nextDailyBonus
+        balance += amount
         persistBalance()
-        showReward(amount: Self.dailyBonus, reason: "Tagesbonus")
+        showReward(amount: amount, reason: newStreak > 1 ? "Tagesbonus · Serie \(newStreak) Tage" : "Tagesbonus")
         return true
     }
 
@@ -183,6 +224,13 @@ final class PointsStore: ObservableObject {
         recentOpenings.insert(event, at: 0)
         recentOpenings = Array(recentOpenings.prefix(10))
         persistRecent()
+
+        totalOpenings += 1
+        totalCardsPulled += pulls.count
+        totalHolosPulled += pulls.filter(\.isHolo).count
+        defaults.set(totalOpenings, forKey: key("totalOpenings"))
+        defaults.set(totalCardsPulled, forKey: key("totalCardsPulled"))
+        defaults.set(totalHolosPulled, forKey: key("totalHolosPulled"))
     }
 
     private var lastDailyBonus: Date? {

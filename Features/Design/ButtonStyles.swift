@@ -76,3 +76,16 @@ struct SuccessCheckmark: View {
             .symbolEffect(.bounce, value: 1)
     }
 }
+
+/// Type-Eraser, damit Button-Stile je nach Zustand wechseln können.
+struct AnyButtonStyle: ButtonStyle {
+    private let bodyClosure: (Configuration) -> AnyView
+
+    init<S: ButtonStyle>(_ style: S) {
+        bodyClosure = { AnyView(style.makeBody(configuration: $0)) }
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        bodyClosure(configuration)
+    }
+}

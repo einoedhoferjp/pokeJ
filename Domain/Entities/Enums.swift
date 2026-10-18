@@ -52,6 +52,19 @@ enum CardCondition: String, Codable, CaseIterable, Identifiable, Sendable {
         case .uncertain: return "Unsichere Schätzung"
         }
     }
+
+    /// SF-Symbol für Schnellaktionen (Zustand ändern im Kontextmenü).
+    var systemImage: String {
+        switch self {
+        case .nearMint: return "sparkles"
+        case .excellent: return "hand.thumbsup"
+        case .good: return "hand.thumbsup.down"
+        case .lightPlayed: return "exclamationmark.triangle"
+        case .played: return "exclamationmark.circle"
+        case .poor: return "xmark.octagon"
+        case .uncertain: return "questionmark.circle"
+        }
+    }
 }
 
 /// Herkunft eines Exemplars: real erfasst (gescannt/eingetragen) oder aus

@@ -44,4 +44,34 @@ enum CollectionStats {
     static func setCount(_ items: [CollectionItem]) -> Int {
         Set(items.compactMap { $0.variant?.card?.setId }).count
     }
+
+    /// Marktpreis je Karte (externId → Einzelpreis), ermittelt über die
+    /// gespeicherten Preissnapshots. Wird für die Sortierung „nach Wert" in der
+    /// Bibliothek genutzt.
+    static func unitPrices(items: [CollectionItem], snapshots: [PriceSnapshot], now: Date = .now) -> [String: Decimal] {
+        let byProduct = Dictionary(grouping: snapshots, by: \.cardmarketProductId)
+        var result: [String: Decimal] = [:]
+
+        for item in items {
+            guard let card = item.variant?.card else { continue }
+            let printing = item.variant?.printing ?? .normal
+            let productId = item.variant?.cardmarketProductId ?? card.externalId
+            let stored = byProduct[productId] ?? []
+            let points = stored.map {
+                PricePoint(
+                    productId: $0.cardmarketProductId,
+                    metric: $0.metric,
+                    amount: $0.amount,
+                    currency: $0.currency,
+                    fetchedAt: $0.fetchedAt,
+                    source: $0.source,
+                    matchQuality: $0.matchQuality
+                )
+            }
+            if let latest = PriceResolver.latest(points: points, printing: printing) {
+                result[card.externalId] = latest.amount
+            }
+        }
+        return result
+    }
 }

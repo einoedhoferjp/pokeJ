@@ -62,6 +62,11 @@ struct HomeView: View {
                         }
                         Section("Daten") {
                             NavigationLink {
+                                WishlistView()
+                            } label: {
+                                Label("Wunschliste", systemImage: "heart")
+                            }
+                            NavigationLink {
                                 DataExportView()
                             } label: {
                                 Label("Export / Backup", systemImage: "square.and.arrow.up.on.square")

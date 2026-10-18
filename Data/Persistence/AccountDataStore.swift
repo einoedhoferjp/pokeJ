@@ -15,7 +15,8 @@ enum AccountDataStore {
             CollectionItem.self,
             PriceSnapshot.self,
             ScanRecord.self,
-            ConditionAssessment.self
+            ConditionAssessment.self,
+            WishCard.self
         ])
     }
 

@@ -15,6 +15,10 @@ enum AppTheme {
     static let gold = Color(red: 1.0, green: 0.82, blue: 0.20)
     /// Hintergrund-Text, helles Lavendel-Weiß.
     static let ink = Color(red: 0.97, green: 0.95, blue: 1.0)
+    /// Verspielter Akzent: frisches Mint für Erfolgs-/Sammel-Elemente.
+    static let mint = Color(red: 0.36, green: 0.82, blue: 0.63)
+    /// Verspielter Akzent: warmes Koralle für Highlights und Warnungen.
+    static let coral = Color(red: 1.0, green: 0.44, blue: 0.42)
     /// Kartenoberfläche (glossy Base).
     static let surface = elevated
 
@@ -112,6 +116,8 @@ enum AppTheme {
         static let smooth = Animation.spring(response: 0.45, dampingFraction: 0.88)
         static let bouncy = Animation.spring(response: 0.40, dampingFraction: 0.64)
         static let gentle = Animation.easeInOut(duration: 0.35)
+        /// Federnd und ausgelassen – für Erfolge, Belohnungen, seltene Züge.
+        static let celebratory = Animation.spring(response: 0.5, dampingFraction: 0.55)
     }
 
     // MARK: - Kamera

@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 /// Detailansicht einer Katalogkarte: Bild, Kennung, optionaler Live-Preis
@@ -7,13 +8,16 @@ struct CatalogCardDetailView: View {
     let set: CatalogSet
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
     @Environment(\.priceProvider) private var priceProvider
+    @Query(sort: \CollectionItem.createdAt, order: .reverse) private var items: [CollectionItem]
 
     @State private var points: [PricePoint] = []
     @State private var isLoadingPrice = false
     @State private var priceError: String?
     @State private var priceNote: String?
     @State private var showAdd = false
+    @State private var isWished = false
 
     private var brief: CardBrief {
         CardBrief(
@@ -25,6 +29,13 @@ struct CatalogCardDetailView: View {
             rarity: nil,
             imageURL: card.highResURL
         )
+    }
+
+    /// Exemplare dieser Karte in der Sammlung (alle Sprachen/Varianten).
+    private var ownedQuantity: Int {
+        items
+            .filter { $0.variant?.card?.externalId == card.id }
+            .reduce(0) { $0 + $1.quantity }
     }
 
     var body: some View {
@@ -46,12 +57,35 @@ struct CatalogCardDetailView: View {
                     .frame(maxHeight: 420)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .shadow(color: .black.opacity(0.18), radius: 12, y: 6)
+                    .overlay(alignment: .topTrailing) {
+                        if isWished {
+                            Image(systemName: "heart.fill")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .padding(10)
+                                .background(AppTheme.coral, in: Circle())
+                                .shadow(color: AppTheme.coral.opacity(0.6), radius: 8)
+                                .padding(10)
+                        }
+                    }
 
                     VStack(spacing: 4) {
                         Text(card.name).font(.title2.bold())
                         Text("\(set.name) · #\(card.localId)")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                    }
+
+                    if ownedQuantity > 0 {
+                        Label(
+                            "Bereits \(ownedQuantity)× in deiner Sammlung",
+                            systemImage: "checkmark.seal.fill"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.mint)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(AppTheme.mint.opacity(0.14), in: Capsule())
                     }
 
                     priceBox
@@ -62,6 +96,16 @@ struct CatalogCardDetailView: View {
                         Label("Zur Sammlung hinzufügen", systemImage: "plus.circle.fill")
                     }
                     .buttonStyle(BrandButtonStyle())
+
+                    Button {
+                        isWished = WishlistStore.toggle(brief: brief, context: context)
+                    } label: {
+                        Label(
+                            isWished ? "Von der Wunschliste entfernen" : "Auf die Wunschliste",
+                            systemImage: isWished ? "heart.slash" : "heart"
+                        )
+                    }
+                    .buttonStyle(GlassButtonStyle())
                 }
                 .padding()
             }
@@ -86,6 +130,9 @@ struct CatalogCardDetailView: View {
             }
             .sheet(isPresented: $showAdd) {
                 AddEditCardView(mode: .add, preselected: brief, language: .de)
+            }
+            .onAppear {
+                isWished = WishlistStore.contains(externalId: card.id, context: context)
             }
         }
     }

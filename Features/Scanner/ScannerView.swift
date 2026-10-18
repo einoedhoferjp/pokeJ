@@ -39,7 +39,9 @@ struct ScannerView: View {
     @State private var selection: [UUID: CardMatch] = [:]
     @State private var priceStates: [UUID: ScanPriceState] = [:]
     @State private var savedResultIds: Set<UUID> = []
-    @State private var scanLanguage: Language = .de
+    /// Letzte Scan-Sprache; wird über den App-Launch hinweg gemerkt.
+    @AppStorage("pokej.scanLanguage") private var scanLanguageRaw: String = Language.de.rawValue
+    @Query(sort: \CollectionItem.createdAt, order: .reverse) private var collectionItems: [CollectionItem]
 
     @State private var isBatchMode = false
     @State private var batchCount = 0
@@ -90,6 +92,28 @@ struct ScannerView: View {
         VNDocumentCameraViewController.isSupported
     }
 
+    /// Zuletzt gewählte Scan-Sprache (wird gemerkt).
+    private var scanLanguage: Language {
+        get { Language(rawValue: scanLanguageRaw) ?? .de }
+        nonmutating set { scanLanguageRaw = newValue.rawValue }
+    }
+
+    /// Binding für den Sprach-Picker, das die Auswahl direkt persistiert.
+    private var scanLanguageBinding: Binding<Language> {
+        Binding(
+            get: { scanLanguage },
+            set: { scanLanguage = $0 }
+        )
+    }
+
+    /// Anzahl der Exemplare dieser Karte, die bereits in der Sammlung stecken
+    /// (Duplikat-Check beim Scannen).
+    private func ownedCount(for externalId: String) -> Int {
+        collectionItems
+            .filter { $0.variant?.card?.externalId == externalId }
+            .reduce(0) { $0 + $1.quantity }
+    }
+
     private var pendingCount: Int {
         results.filter { !savedResultIds.contains($0.id) && effectiveMatch(for: $0) != nil }.count
     }
@@ -113,7 +137,7 @@ struct ScannerView: View {
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
-                        Picker("Sprache", selection: $scanLanguage) {
+                        Picker("Sprache", selection: scanLanguageBinding) {
                             ForEach(Language.allCases) { language in
                                 Text(language.displayName).tag(language)
                             }
@@ -416,6 +440,20 @@ struct ScannerView: View {
                             .foregroundStyle(.green)
                     }
                 } else {
+                    let existing = ownedCount(for: match.brief.id)
+                    if existing > 0 {
+                        Label(
+                            "Bereits \(existing)× in deiner Sammlung – wird als Duplikat ergänzt.",
+                            systemImage: "square.on.square.badge.person.crop"
+                        )
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.gold)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(AppTheme.gold.opacity(0.12), in: Capsule())
+                        .overlay(Capsule().strokeBorder(AppTheme.gold.opacity(0.3), lineWidth: 1))
+                    }
                     Button {
                         pendingAdd = PendingAdd(match: match, pageId: result.id)
                     } label: {
