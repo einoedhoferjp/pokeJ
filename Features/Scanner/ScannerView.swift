@@ -82,6 +82,8 @@ struct ScannerView: View {
     private struct ScanPriceState {
         var isLoading = false
         var points: [PricePoint] = []
+        /// Cardmarket-Produkt-ID (für die spätere Zuordnung am Exemplar).
+        var productId: String? = nil
 
         func primary(printing: Printing) -> PricePoint? {
             PriceResolver.latest(points: points, printing: printing)
@@ -732,7 +734,18 @@ struct ScannerView: View {
                 matchQuality: $0.matchQuality
             )
         }
-        priceStates[result.id] = ScanPriceState(isLoading: false, points: points)
+        priceStates[result.id] = ScanPriceState(
+            isLoading: false,
+            points: points,
+            productId: dtos.compactMap { $0.productId }.first
+        )
+
+        // Preis direkt mitschreiben: so hat die Karte sofort nach dem Scan einen
+        // gespeicherten Cardmarket-Preis – unabhängig vom nächsten
+        // Sammlungs-Durchlauf (der nur einmal pro Tag läuft).
+        if !dtos.isEmpty {
+            PriceRepository(context: context).saveIfChanged(dtos)
+        }
     }
 
     @MainActor
@@ -749,6 +762,12 @@ struct ScannerView: View {
         if let record = results.first(where: { $0.id == pending.pageId })?.record {
             record.chosenExternalCardId = pending.match.brief.id
             record.confidence = pending.match.score
+        }
+        // Cardmarket-Produkt-ID aus dem Scan übernehmen, damit der gespeicherte
+        // Preis sofort in der Sammlung angezeigt wird.
+        if let productId = priceStates[pending.pageId]?.productId,
+           let variant = repository.variant(matching: card, language: scanLanguage, printing: .normal) {
+            variant.cardmarketProductId = productId
         }
         try? context.save()
 

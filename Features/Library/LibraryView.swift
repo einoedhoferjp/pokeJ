@@ -3,8 +3,7 @@ import SwiftData
 
 struct LibraryView: View {
     @Environment(\.modelContext) private var context
-    @Environment(\.priceProvider) private var priceProvider
-    @Environment(\.scenePhase) private var scenePhase
+    @Environment(PriceRefreshCoordinator.self) private var priceRefresher
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var points: PointsStore
     @Query(sort: \CollectionItem.createdAt, order: .reverse) private var items: [CollectionItem]
@@ -12,8 +11,6 @@ struct LibraryView: View {
 
     @State private var filter = LibraryFilter()
     @State private var activeSheet: LibrarySheet?
-    @State private var isRefreshing = false
-    @State private var refreshNote: String?
     @State private var showingEmptyState = false
 
     private enum LibrarySheet: Identifiable {
@@ -143,9 +140,12 @@ struct LibraryView: View {
             .onAppear {
                 SeedLoader.bootstrap(in: context)
             }
-            .task(id: realItems.count) { await autoRefreshIfDue() }
-            .onChange(of: scenePhase) { _, phase in
-                if phase == .active { Task { await autoRefreshIfDue() } }
+            .task(id: realItems.count) {
+                await priceRefresher.autoRefreshIfDue(
+                    items: realItems,
+                    username: auth.currentUser?.username,
+                    context: context
+                )
             }
             .onChange(of: filter.searchText) { _, text in
                 if text.isEmpty { filter.searchMode = .number }
@@ -341,16 +341,8 @@ struct LibraryView: View {
     }
 
     @ViewBuilder
-    private var lastRefreshNote: some View {
-        if let last = PriceRefreshLog(username: auth.currentUser?.username).lastFullRefresh {
-            Label("Preise aktualisiert \(PriceFormatting.relative(last, now: Date()))", systemImage: "clock.arrow.circlepath")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        } else {
-            Label("Preise noch nicht automatisch aktualisiert", systemImage: "clock.badge.questionmark")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        }
+    private var priceStatus: some View {
+        PriceRefreshStatusText(username: auth.currentUser?.username, note: priceRefresher.note)
     }
 
     private var valueSummary: some View {
@@ -367,8 +359,22 @@ struct LibraryView: View {
                             .foregroundStyle(AppTheme.ink)
                     }
                     Spacer()
-                    if isRefreshing {
+                    if priceRefresher.isRefreshing {
                         ProgressView()
+                    } else {
+                        Button {
+                            Task {
+                                await priceRefresher.refresh(
+                                    items: realItems,
+                                    username: auth.currentUser?.username,
+                                    context: context
+                                )
+                            }
+                        } label: {
+                            Label("Aktualisieren", systemImage: "arrow.clockwise")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(AppTheme.accent)
+                        }
                     }
                 }
                 HStack(spacing: 12) {
@@ -382,12 +388,7 @@ struct LibraryView: View {
                 }
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textSecondary)
-                lastRefreshNote
-                if let refreshNote {
-                    Text(refreshNote)
-                        .font(.caption2)
-                        .foregroundStyle(AppTheme.textSecondary)
-                }
+                priceStatus
             }
         }
         .padding(.horizontal)
@@ -397,39 +398,13 @@ struct LibraryView: View {
     private var totalQuantity: Int {
         realItems.reduce(0) { $0 + $1.quantity }
     }
-
-    @MainActor
-    private func autoRefreshIfDue() async {
-        guard !realItems.isEmpty, !isRefreshing else { return }
-        guard PriceRefreshLog(username: auth.currentUser?.username).isRefreshDue() else { return }
-        await refreshPrices()
-    }
-
-    @MainActor
-    private func refreshPrices() async {
-        guard !isRefreshing else { return }
-        isRefreshing = true
-        refreshNote = nil
-        let service = PriceService(provider: priceProvider, context: context)
-        let summary = await service.refresh(items: realItems)
-        isRefreshing = false
-
-        if summary.failedTargets == 0 {
-            PriceRefreshLog(username: auth.currentUser?.username).markRefreshed()
-        }
-
-        var parts: [String] = []
-        if summary.insertedSnapshots > 0 { parts.append("\(summary.insertedSnapshots) neue Preisstände") }
-        if summary.updatedVariants > 0 { parts.append("\(summary.updatedVariants) Varianten aktualisiert") }
-        if summary.failedTargets > 0 { parts.append("\(summary.failedTargets) fehlgeschlagen") }
-        refreshNote = parts.isEmpty ? "Preise sind aktuell." : parts.joined(separator: " · ")
-    }
 }
 
 #Preview {
     LibraryView()
         .environmentObject(AuthStore())
         .environmentObject(PointsStore())
+        .environment(PriceRefreshCoordinator(provider: MockPriceProvider()))
         .modelContainer(PreviewData.container)
 }
 

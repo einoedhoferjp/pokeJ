@@ -39,4 +39,17 @@ final class RefreshPricesUseCaseTests: XCTestCase {
         XCTAssertEqual(byId["bad"]?.failed, true)
         XCTAssertEqual(byId["bad"]?.snapshots.count, 0)
     }
+
+    func testBoundedConcurrencyFetchesAllTargetsInOrder() async {
+        let provider = StubPriceProvider { _, _, _ in [Self.sample()] }
+        let targets = (0..<25).map {
+            PriceRefreshTarget(externalCardId: "card-\($0)", printing: .normal, language: .en)
+        }
+
+        let results = await RefreshPricesUseCase(provider: provider, maxConcurrent: 4).fetch(targets: targets)
+
+        XCTAssertEqual(results.count, 25)
+        XCTAssertEqual(results.map(\.target), targets, "Reihenfolge bleibt stabil")
+        XCTAssertTrue(results.allSatisfy { !$0.failed })
+    }
 }

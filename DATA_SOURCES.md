@@ -103,6 +103,30 @@ Dokumentationen entnommen (siehe Quellen unten). Nichts ist erfunden.
 > ist derzeit durchgängig `productOnly`, weil TCGdex den Preis produktweit
 > liefert.
 
+### Aktualisierung in der App (tägliche Kadenz)
+
+Da Cardmarket **Tageswerte** liefert und die App keinen eigenen Server hat,
+wird die Aktualisierung an drei Stellen angestoßen:
+
+| Auslöser | Ort | Wirkung |
+|---|---|---|
+| App-Start und Rückkehr in den Vordergrund | `RootView` (`.task(id:)`, `scenePhase`) | prüft und lädt, unabhängig vom offenen Tab |
+| Öffnen der Preis-Sichten | `HomeView`, `LibraryView` (`.task`) | No-Op, wenn nicht fällig |
+| iOS-Hintergrundlauf | `PriceRefreshTask` (`.backgroundTask(.appRefresh)`) | lädt auch, wenn die App nicht geöffnet ist (**Best-Effort**, von iOS getaktet) |
+
+- Kadenz: **24 Stunden** (`PriceRefreshPolicy.interval`). Ein Lauf zählt erst
+  nach **fehlerfreiem** Durchlauf als Tagesaktualisierung; fehlgeschlagene
+  Karten werden nach 1 h (`retryInterval`) erneut versucht.
+- Direkt nach einem Scan wird der Preis des erkannten Exemplars sofort
+  gespeichert und die Cardmarket-Produkt-ID am Exemplar gesetzt.
+- Bündelung: `PriceRefreshCoordinator` verhindert parallele Durchläufe
+  (Start + Sammlung + Startseite). Abrufe laufen mit begrenzter Parallelität
+  (6 gleichzeitig, `RefreshPricesUseCase`).
+- Sichtbarkeit: `PriceRefreshStatusText` zeigt „zuletzt aktualisiert" und die
+  nächste automatische Aktualisierung; die Info.plist enthält
+  `UIBackgroundModes: fetch` und `BGTaskSchedulerPermittedIdentifiers`
+  (`local.pokej.app.prices`).
+
 ---
 
 ## 4. Nicht genutzte / geprüfte Alternativen

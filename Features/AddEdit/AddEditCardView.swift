@@ -10,6 +10,7 @@ struct AddEditCardView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @Environment(\.cardDataProvider) private var provider
+    @Environment(\.priceProvider) private var priceProvider
 
     let mode: Mode
     private let preselected: CardBrief?
@@ -505,10 +506,39 @@ struct AddEditCardView: View {
 
         rememberSelection()
         didSave = true
+        if case .add = mode, let brief = selectedCard {
+            loadPrice(for: brief)
+        }
         let completion = onSaved
         dismiss()
         if let completion {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: completion)
+        }
+    }
+
+    /// Holt nach dem Anlegen den Cardmarket-Preis im Hintergrund und verknüpft
+    /// ihn mit dem Exemplar – so ist der Preis sofort da statt erst nach dem
+    /// nächsten Sammlungs-Durchlauf (1×/Tag).
+    private func loadPrice(for brief: CardBrief) {
+        let context = context
+        let provider = priceProvider
+        let language = language
+        let printing = printing
+        Task { @MainActor in
+            let dtos = (try? await provider.prices(
+                externalCardId: brief.id,
+                printing: printing,
+                language: language
+            )) ?? []
+            guard !dtos.isEmpty else { return }
+            PriceRepository(context: context).saveIfChanged(dtos)
+            guard let productId = dtos.compactMap({ $0.productId }).first else { return }
+            let repository = CollectionRepository(context: context)
+            guard let card = try? repository.card(externalId: brief.id),
+                  let variant = repository.variant(matching: card, language: language, printing: printing),
+                  variant.cardmarketProductId != productId else { return }
+            variant.cardmarketProductId = productId
+            try? context.save()
         }
     }
 

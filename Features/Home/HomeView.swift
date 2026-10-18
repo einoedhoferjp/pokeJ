@@ -4,7 +4,7 @@ import SwiftData
 /// Startseite: Dashboard mit großer Scan-Aktion im Mittelpunkt.
 struct HomeView: View {
     @Environment(\.modelContext) private var context
-    @Environment(\.priceProvider) private var priceProvider
+    @Environment(PriceRefreshCoordinator.self) private var priceRefresher
     @EnvironmentObject private var auth: AuthStore
     @EnvironmentObject private var points: PointsStore
 
@@ -22,8 +22,6 @@ struct HomeView: View {
 
     @State private var showScanner = false
     @State private var showAdd = false
-    @State private var isRefreshing = false
-    @State private var refreshNote: String?
     @State private var animateScanButton = false
 
     private let statColumns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
@@ -109,7 +107,13 @@ struct HomeView: View {
                     animateScanButton = true
                 }
             }
-            .task { await autoRefreshIfDue() }
+            .task {
+                await priceRefresher.autoRefreshIfDue(
+                    items: realItems,
+                    username: auth.currentUser?.username,
+                    context: context
+                )
+            }
         }
     }
 
@@ -208,12 +212,18 @@ struct HomeView: View {
                         .monospacedDigit()
                 }
                 Spacer()
-                if isRefreshing {
+                if priceRefresher.isRefreshing {
                     ProgressView()
                         .tint(AppTheme.gold)
                 } else {
                     Button {
-                        Task { await refreshPrices() }
+                        Task {
+                            await priceRefresher.refresh(
+                                items: realItems,
+                                username: auth.currentUser?.username,
+                                context: context
+                            )
+                        }
                     } label: {
                         Label("Aktualisieren", systemImage: "arrow.clockwise.circle.fill")
                             .font(.subheadline.weight(.semibold))
@@ -233,15 +243,10 @@ struct HomeView: View {
                 }
             }
             .font(.caption2)
-            if let refreshNote {
-                Text(refreshNote)
-                    .font(.caption2)
-                    .foregroundStyle(AppTheme.textSecondary)
-            } else if let last = PriceRefreshLog(username: auth.currentUser?.username).lastFullRefresh {
-                Text("Preise aktualisiert \(PriceFormatting.relative(last, now: Date()))")
-                    .font(.caption2)
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
+            PriceRefreshStatusText(
+                username: auth.currentUser?.username,
+                note: priceRefresher.note
+            )
         }
         .padding(16)
         .background(
@@ -397,33 +402,6 @@ struct HomeView: View {
     }
 
     // MARK: - Preise
-
-    @MainActor
-    private func autoRefreshIfDue() async {
-        guard !realItems.isEmpty, !isRefreshing else { return }
-        guard PriceRefreshLog(username: auth.currentUser?.username).isRefreshDue() else { return }
-        await refreshPrices()
-    }
-
-    @MainActor
-    private func refreshPrices() async {
-        guard !isRefreshing else { return }
-        isRefreshing = true
-        refreshNote = nil
-        let service = PriceService(provider: priceProvider, context: context)
-        let summary = await service.refresh(items: realItems)
-        isRefreshing = false
-
-        if summary.failedTargets == 0 {
-            PriceRefreshLog(username: auth.currentUser?.username).markRefreshed()
-        }
-
-        var parts: [String] = []
-        if summary.insertedSnapshots > 0 { parts.append("\(summary.insertedSnapshots) neue") }
-        if summary.updatedVariants > 0 { parts.append("\(summary.updatedVariants) aktualisiert") }
-        if summary.failedTargets > 0 { parts.append("\(summary.failedTargets) fehlgeschlagen") }
-        refreshNote = parts.isEmpty ? "Preise sind aktuell." : parts.joined(separator: " · ")
-    }
 }
 
 struct StatTile: View {
@@ -567,5 +545,6 @@ struct ScanHistoryRow: View {
     HomeView()
         .environmentObject(AuthStore())
         .environmentObject(PointsStore())
+        .environment(PriceRefreshCoordinator(provider: MockPriceProvider()))
         .modelContainer(PreviewData.container)
 }

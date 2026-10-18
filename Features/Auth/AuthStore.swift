@@ -8,6 +8,12 @@ final class AuthStore: ObservableObject {
     private let defaults: UserDefaults
     private let storageKey = "pokej.currentUser"
 
+    /// Zuletzt angemeldeter Benutzername – auch ohne lebende `AuthStore`-Instanz
+    /// lesbar (z. B. im Hintergrundlauf der Preisaktualisierung).
+    static func storedUsername(defaults: UserDefaults = .standard) -> String? {
+        defaults.string(forKey: "pokej.currentUser")
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         if let username = defaults.string(forKey: storageKey),

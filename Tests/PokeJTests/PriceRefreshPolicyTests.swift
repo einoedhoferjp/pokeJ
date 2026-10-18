@@ -51,4 +51,57 @@ final class PriceRefreshPolicyTests: XCTestCase {
         XCTAssertNil(bob.lastFullRefresh)
         XCTAssertTrue(bob.isRefreshDue(now: stamp))
     }
+
+    // MARK: - Wiederholung fehlgeschlagener Karten
+
+    func testFailedRefreshIsRetriedEarlierThanNextDay() {
+        let now = Date()
+        let tenMinutesAgo = now.addingTimeInterval(-10 * 60)
+
+        // Kurz nach einem fehlerhaften Lauf: noch nicht erneut fällig.
+        XCTAssertFalse(PriceRefreshPolicy.isRefreshDue(
+            lastRefresh: tenMinutesAgo,
+            lastAttempt: tenMinutesAgo,
+            failedTargets: 2,
+            now: now
+        ))
+
+        // Nach der Wiederholungsfrist: fällig.
+        XCTAssertTrue(PriceRefreshPolicy.isRefreshDue(
+            lastRefresh: tenMinutesAgo,
+            lastAttempt: tenMinutesAgo,
+            failedTargets: 2,
+            now: tenMinutesAgo.addingTimeInterval(PriceRefreshPolicy.retryInterval)
+        ))
+
+        // Fehlerfreier Lauf: keine frühe Wiederholung.
+        XCTAssertFalse(PriceRefreshPolicy.isRefreshDue(
+            lastRefresh: tenMinutesAgo,
+            lastAttempt: tenMinutesAgo,
+            failedTargets: 0,
+            now: now
+        ))
+    }
+
+    func testRecordAttemptKeepsRefreshDueOnFailure() {
+        let suite = "test.pricelog.retry"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let log = PriceRefreshLog(defaults: defaults)
+        let stamp = Date()
+
+        log.recordAttempt(failed: 3, at: stamp)
+        XCTAssertNil(log.lastFullRefresh, "Fehlerhafter Lauf zählt nicht als Tagesaktualisierung")
+        XCTAssertEqual(log.failedTargets, 3)
+        XCTAssertEqual(log.nextAutomaticRefresh, stamp.addingTimeInterval(PriceRefreshPolicy.retryInterval))
+        XCTAssertFalse(log.isRefreshDue(now: stamp.addingTimeInterval(60)))
+        XCTAssertTrue(log.isRefreshDue(now: stamp.addingTimeInterval(PriceRefreshPolicy.retryInterval + 1)))
+
+        log.recordAttempt(failed: 0, at: stamp)
+        XCTAssertEqual(log.lastFullRefresh, stamp)
+        XCTAssertEqual(log.failedTargets, 0)
+        XCTAssertEqual(log.nextAutomaticRefresh, stamp.addingTimeInterval(PriceRefreshPolicy.interval))
+        XCTAssertFalse(log.isRefreshDue(now: stamp.addingTimeInterval(23 * 60 * 60)))
+        XCTAssertTrue(log.isRefreshDue(now: stamp.addingTimeInterval(25 * 60 * 60)))
+    }
 }
