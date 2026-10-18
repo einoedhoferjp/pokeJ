@@ -36,10 +36,14 @@ final class WishCard {
 
     /// Bild-URL mit TCGdex-Fallback über Set-ID und lokale Nummer.
     var imageURL: URL? {
-        if let stored = imageURLString, !stored.isEmpty, let url = URL(string: stored) {
+        if let stored = imageURLString, !stored.isEmpty,
+           !Card.isDeadImageURL(stored),
+           let url = URL(string: stored) {
             return url
         }
-        return URL(string: "https://images.tcgdex.net/de/cards/\(setId)-\(localId)/low.webp")
+        // Fallback: englisches CDN-Bild (das alte images.tcgdex.net-Muster
+        // existiert nicht mehr).
+        return SetArtworkCatalog.cardImageURL(setId: setId, localId: localId, highResolution: false)
     }
 }
 

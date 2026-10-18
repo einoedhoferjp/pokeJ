@@ -35,6 +35,16 @@ struct SetArtwork: Identifiable, Decodable, Sendable, Hashable {
         Int(releaseDate.prefix(4))
     }
 
+    /// Kartenbild auf dem TCGdex-CDN, aufgebaut aus Serie- und Set-ID.
+    ///
+    /// Funktioniert auch dann, wenn kein Set-Logo hinterlegt ist und wenn das
+    /// deutsche Kartenbild fehlt (u. a. ältere Sets wie Base Set) – der
+    /// englische Pfad existiert für alle 155 Sets.
+    func cardImageURL(localId: String, highResolution: Bool) -> URL? {
+        let suffix = highResolution ? "/high.webp" : "/low.webp"
+        return URL(string: "https://assets.tcgdex.net/en/\(serieId)/\(id)/\(localId)\(suffix)")
+    }
+
     var releaseDateValue: Date? {
         Self.dateFormatter.date(from: releaseDate)
     }
@@ -60,6 +70,12 @@ enum SetArtworkCatalog {
 
     static func artwork(for setId: String) -> SetArtwork? {
         byId[setId]
+    }
+
+    /// Zentraler Kartenbild-Fallback (englisches CDN), wenn das deutsche Bild
+    /// im Katalog fehlt. Liefert `nil`, wenn das Set unbekannt ist.
+    static func cardImageURL(setId: String, localId: String, highResolution: Bool = false) -> URL? {
+        artwork(for: setId)?.cardImageURL(localId: localId, highResolution: highResolution)
     }
 
     private static func load() -> [SetArtwork] {

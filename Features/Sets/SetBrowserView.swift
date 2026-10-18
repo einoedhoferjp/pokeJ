@@ -165,7 +165,9 @@ private struct SetGridCell: View {
     var wishedCount: Int = 0
 
     private var thumbnailURL: URL? {
-        return set.cards.first(where: { $0.image != nil })?.thumbnailURL
+        // Erste Karte; `thumbnailURL` fängt Sets ohne deutsches Bild bereits
+        // über den englischen CDN-Fallback ab.
+        return set.cards.first?.thumbnailURL
     }
 
     private var fraction: Double {

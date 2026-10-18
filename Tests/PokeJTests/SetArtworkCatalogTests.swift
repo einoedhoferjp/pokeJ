@@ -49,4 +49,51 @@ final class SetArtworkCatalogTests: XCTestCase {
         XCTAssertNil(artwork.englishImageBase)
         XCTAssertNil(artwork.englishImageURL(localId: "1", highResolution: false))
     }
+
+    // MARK: - CDN-Fallback (auch ohne Set-Logo)
+
+    func testCardImageURLWorksWithoutLogo() throws {
+        let artwork = try XCTUnwrap(SetArtworkCatalog.all.first { !$0.hasLogo })
+        let low = try XCTUnwrap(artwork.cardImageURL(localId: "1", highResolution: false))
+        XCTAssertEqual(
+            low.absoluteString,
+            "https://assets.tcgdex.net/en/\(artwork.serieId)/\(artwork.id)/1/low.webp"
+        )
+        let high = try XCTUnwrap(artwork.cardImageURL(localId: "1", highResolution: true))
+        XCTAssertTrue(high.absoluteString.hasSuffix("/1/high.webp"))
+    }
+
+    func testCatalogCardFallsBackToEnglishCDN() throws {
+        let artwork = try XCTUnwrap(SetArtworkCatalog.all.first { !$0.hasLogo })
+        let card = CatalogCard(id: "\(artwork.id)-1", localId: "1", name: "Test", image: nil)
+        XCTAssertEqual(card.setId, artwork.id)
+        XCTAssertEqual(
+            card.thumbnailURL?.absoluteString,
+            "https://assets.tcgdex.net/en/\(artwork.serieId)/\(artwork.id)/1/low.webp"
+        )
+        XCTAssertTrue(try XCTUnwrap(card.highResURL).absoluteString.hasSuffix("/1/high.webp"))
+    }
+
+    func testCatalogCardPrefersGermanImage() {
+        let card = CatalogCard(
+            id: "base1-4",
+            localId: "4",
+            name: "Glurak",
+            image: "https://assets.tcgdex.net/de/base/base1/4"
+        )
+        XCTAssertEqual(card.setId, "base1")
+        XCTAssertEqual(card.thumbnailURL?.absoluteString, "https://assets.tcgdex.net/de/base/base1/4/low.webp")
+        XCTAssertEqual(card.highResURL?.absoluteString, "https://assets.tcgdex.net/de/base/base1/4/high.webp")
+    }
+
+    func testCatalogCardUnknownSetHasNoFallback() {
+        let card = CatalogCard(id: "gibt-es-nicht-1", localId: "1", name: "X", image: nil)
+        XCTAssertNil(card.thumbnailURL)
+        XCTAssertNil(card.highResURL)
+    }
+
+    func testDeadImageURLDetection() {
+        XCTAssertTrue(Card.isDeadImageURL("https://images.tcgdex.net/de/cards/base1-4/high.webp"))
+        XCTAssertFalse(Card.isDeadImageURL("https://assets.tcgdex.net/en/base/base1/4/high.webp"))
+    }
 }

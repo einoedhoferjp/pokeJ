@@ -14,14 +14,29 @@ struct CatalogCard: Identifiable, Decodable, Sendable, Hashable {
     let name: String
     let image: String?
 
-    var thumbnailURL: URL? {
-        guard let image else { return nil }
-        return URL(string: image + "/low.webp")
+    /// Set-ID, aus der Kartenkennung abgeleitet (Format „{setId}-{localId}").
+    var setId: String {
+        guard id.hasSuffix(localId), id.count > localId.count + 1 else { return "" }
+        return String(id.dropLast(localId.count + 1))
     }
 
+    /// Thumbnail-URL: deutsches Kartenbild, sonst englisches CDN-Bild des Sets.
+    ///
+    /// Fehlende deutsche Bilder (62 Sets, z. B. Base Set) werden so über den
+    /// Fallback des Set-Artwork-Katalogs abgedeckt.
+    var thumbnailURL: URL? {
+        if let image, let url = URL(string: image + "/low.webp") {
+            return url
+        }
+        return SetArtworkCatalog.cardImageURL(setId: setId, localId: localId, highResolution: false)
+    }
+
+    /// Große Bild-URL mit demselben Fallback wie `thumbnailURL`.
     var highResURL: URL? {
-        guard let image else { return nil }
-        return URL(string: image + "/high.webp")
+        if let image, let url = URL(string: image + "/high.webp") {
+            return url
+        }
+        return SetArtworkCatalog.cardImageURL(setId: setId, localId: localId, highResolution: true)
     }
 }
 

@@ -24,8 +24,13 @@ struct PackPull: Identifiable, Hashable, Sendable {
     }
 
     private func fallbackTCGdexImageURL(highResolution: Bool = false) -> URL? {
-        let suffix = highResolution ? "/high.webp" : "/low.webp"
-        return URL(string: "https://images.tcgdex.net/de/cards/\(set.id)-\(card.localId)\(suffix)")
+        // Englisches CDN-Bild über Serie-/Set-ID – das alte images.tcgdex.net-
+        // Muster existiert nicht mehr (404/kein DNS).
+        SetArtworkCatalog.cardImageURL(
+            setId: set.id,
+            localId: card.localId,
+            highResolution: highResolution
+        )
     }
 }
 
