@@ -53,4 +53,14 @@ jobs:
               grep -E "error:|fatal error:|\*\*\*" "$LOG" | head -60 || tail -60 "$LOG"
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
+            # Fehler auch als Annotation (oeffentlich per API lesbar)
+            grep -E "error:|fatal error:" "$LOG" | head -10 | while IFS= read -r line; do
+              echo "::error::$(echo "$line" | cut -c1-400)"
+            done
+            if ! grep -qE "error:|fatal error:" "$LOG"; then
+              echo "::error::$(basename "$LOG"): kein 'error:'-Output gefunden; letzte Zeilen:"
+              tail -20 "$LOG" | while IFS= read -r line; do
+                echo "::error::$(echo "$line" | cut -c1-400)"
+              done
+            fi
           done

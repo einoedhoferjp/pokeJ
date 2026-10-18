@@ -51,6 +51,16 @@ jobs:
             grep -E "error:|fatal error:|\*\*\*" "$RUNNER_TEMP/archive.log" | head -60 || tail -60 "$RUNNER_TEMP/archive.log"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          if grep -qE "error:|fatal error:" "$RUNNER_TEMP/archive.log"; then
+            grep -E "error:|fatal error:" "$RUNNER_TEMP/archive.log" | head -10 | while IFS= read -r line; do
+              echo "::error::$(echo "$line" | cut -c1-400)"
+            done
+          else
+            echo "::error::Kein 'error:'-Output gefunden; letzte Zeilen:"
+            tail -20 "$RUNNER_TEMP/archive.log" | while IFS= read -r line; do
+              echo "::error::$(echo "$line" | cut -c1-400)"
+            done
+          fi
 
       - name: Package .ipa
         run: |
