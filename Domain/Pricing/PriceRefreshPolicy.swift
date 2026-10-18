@@ -33,7 +33,8 @@ enum PriceRefreshPolicy {
     /// Vollständige Prüfung inklusive Wiederholung fehlgeschlagener Karten.
     ///
     /// `lastRefresh` ist der letzte **erfolgreiche** Durchlauf, `lastAttempt`
-    /// der letzte Versuch (auch mit Fehlern).
+    /// der letzte Versuch (auch mit Fehlern). Fehlerhafte Läufe werden nach
+    /// `retryInterval` wiederholt – aber nicht bei jedem Vordergrund-Wechsel.
     static func isRefreshDue(
         lastRefresh: Date?,
         lastAttempt: Date?,
@@ -42,10 +43,19 @@ enum PriceRefreshPolicy {
         interval: TimeInterval = PriceRefreshPolicy.interval,
         retryInterval: TimeInterval = PriceRefreshPolicy.retryInterval
     ) -> Bool {
-        if isRefreshDue(lastRefresh: lastRefresh, now: now, interval: interval) {
+        // Ein erfolgreicher Durchlauf gibt den Takt vor.
+        if let lastRefresh, now.timeIntervalSince(lastRefresh) >= interval {
             return true
         }
-        guard failedTargets > 0, let lastAttempt else { return false }
-        return now.timeIntervalSince(lastAttempt) >= retryInterval
+
+        // Noch nie versucht: sofort fällig.
+        guard let lastAttempt else { return lastRefresh == nil }
+
+        // Fehler im letzten Lauf oder noch nie vollständig aktualisiert:
+        // nach der kürzeren Frist erneut versuchen.
+        if failedTargets > 0 || lastRefresh == nil {
+            return now.timeIntervalSince(lastAttempt) >= retryInterval
+        }
+        return false
     }
 }
