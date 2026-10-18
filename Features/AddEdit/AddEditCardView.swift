@@ -276,9 +276,9 @@ struct AddEditCardView: View {
                 .tracking(0.5)
 
             VStack(spacing: 12) {
-                PickerRow(title: "Sprache", selection: $language, options: Language.allCases.map { $0.displayName })
-                PickerRow(title: "Variante", selection: $printing, options: Printing.allCases.map { $0.displayName })
-                PickerRow(title: "Zustand", selection: $condition, options: CardCondition.allCases.map { $0.displayName })
+                PickerRow(title: "Sprache", selection: $language, options: Language.allCases.map { ($0, $0.displayName) })
+                PickerRow(title: "Variante", selection: $printing, options: Printing.allCases.map { ($0, $0.displayName) })
+                PickerRow(title: "Zustand", selection: $condition, options: CardCondition.allCases.map { ($0, $0.displayName) })
 
                 HStack(spacing: 12) {
                     Text("Anzahl")
@@ -377,7 +377,7 @@ struct AddEditCardView: View {
             .padding(.vertical, 16)
             .background(
                 RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
-                    .fill(canSave ? AppTheme.brandGradient : Color.secondary.opacity(0.3))
+                    .fill(AnyShapeStyle(canSave ? AppTheme.brandGradient : Color.secondary.opacity(0.3)))
                     .overlay(
                         LinearGradient(
                             colors: [Color.white.opacity(0.3), Color.clear],
@@ -518,10 +518,11 @@ struct AddEditCardView: View {
 }
 
 /// Moderne Picker-Zeile mit Segmented-Control-Stil.
-struct PickerRow: View {
+struct PickerRow<Option: Hashable>: View {
     let title: String
-    @Binding var selection: Int
-    let options: [String]
+    @Binding var selection: Option
+    /// Anzeigename je Option in derselben Reihenfolge wie `CaseIterable`.
+    let options: [(value: Option, label: String)]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -529,8 +530,8 @@ struct PickerRow: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.textSecondary)
             Picker(title, selection: $selection) {
-                ForEach(0..<options.count, id: \.self) { index in
-                    Text(options[index]).tag(index)
+                ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                    Text(option.label).tag(option.value)
                 }
             }
             .pickerStyle(.segmented)

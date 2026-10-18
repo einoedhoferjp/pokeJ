@@ -349,9 +349,11 @@ struct PackOpeningView: View {
 
                 Capsule()
                     .fill(
-                        isRevealed
-                            ? (isHoloSlot ? AppTheme.goldGradient : AppTheme.brandGradient)
-                            : Color.white.opacity(0.12)
+                        AnyShapeStyle(
+                            isRevealed
+                                ? (isHoloSlot ? AppTheme.goldGradient : AppTheme.brandGradient)
+                                : Color.white.opacity(0.12)
+                        )
                     )
                     .frame(height: 7)
                     .overlay(
