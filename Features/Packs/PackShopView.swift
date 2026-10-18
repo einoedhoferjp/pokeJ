@@ -82,6 +82,7 @@ struct PackShopView: View {
         }
     }
 
+    @ViewBuilder
     private var balanceSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {

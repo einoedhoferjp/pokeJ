@@ -848,6 +848,60 @@ struct TornEdgeShape: Shape {
 }
 
 /// Kleine Statistik-Würfel für die Pack-Auswertung.
+/// Kleine Vorschau-Kachel einer gezogenen Karte in der horizontalen Leiste.
+private struct PullThumb: View {
+    let pull: PackPull
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ZStack {
+                AsyncImage(url: pull.imageURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .failure:
+                        placeholder
+                    case .empty:
+                        ZStack { placeholder; ProgressView() }
+                    @unknown default:
+                        placeholder
+                    }
+                }
+                .frame(width: 58)
+                .aspectRatio(0.72, contentMode: .fill)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                if pull.isHolo {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(3)
+                                .background(AppTheme.gold, in: Circle())
+                        }
+                    }
+                    .padding(3)
+                    .frame(width: 58)
+                }
+            }
+            Text("#\(pull.card.localId)")
+                .font(.system(size: 9, weight: .bold))
+                .monospacedDigit()
+                .foregroundStyle(AppTheme.textSecondary)
+        }
+    }
+
+    private var placeholder: some View {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(Color.white.opacity(0.08))
+            .frame(width: 58)
+            .aspectRatio(0.72, contentMode: .fit)
+    }
+}
+
 private struct SummaryChip: View {
     let value: String
     let label: String
