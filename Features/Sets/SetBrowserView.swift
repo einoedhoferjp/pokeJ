@@ -251,7 +251,7 @@ private struct SetGridCell: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                .strokeBorder(ownedCount > 0 ? AppTheme.mint.opacity(0.30) : AppTheme.surfaceStroke, lineWidth: 1)
+                .strokeBorder(ownedCount > 0 ? AppTheme.mint.opacity(0.30) : AppTheme.stroke, lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.3), radius: 12, y: 6)
         .animation(AppTheme.Motion.smooth, value: ownedCount)

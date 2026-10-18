@@ -337,7 +337,7 @@ struct ScannerView: View {
                 .buttonStyle(GlassButtonStyle())
                 .padding(.horizontal)
 
-                Spacer(minHeight: 40)
+                Spacer(minLength: 40)
             }
             .padding(.top, 8)
         }
