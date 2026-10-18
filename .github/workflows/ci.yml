@@ -27,15 +27,30 @@ jobs:
 
       - name: Build (unsigned, simulator)
         run: |
+          set -o pipefail
           xcodebuild build \
             -scheme PokeJ \
             -destination 'generic/platform=iOS Simulator' \
             -skipPackagePluginValidation \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee "$RUNNER_TEMP/build.log"
 
       - name: Run unit tests
         run: |
+          set -o pipefail
           xcodebuild test \
             -scheme PokeJ \
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee "$RUNNER_TEMP/test.log"
+
+      - name: Fehlerbericht in die Job-Zusammenfassung
+        if: failure()
+        run: |
+          for LOG in "$RUNNER_TEMP/build.log" "$RUNNER_TEMP/test.log"; do
+            [ -f "$LOG" ] || continue
+            {
+              echo "## Fehler aus $(basename "$LOG")"
+              echo '```'
+              grep -E "error:|fatal error:|\*\*\*" "$LOG" | head -60 || tail -60 "$LOG"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          done

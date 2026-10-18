@@ -28,6 +28,7 @@ jobs:
 
       - name: Archive (unsigned, device)
         run: |
+          set -o pipefail
           xcodebuild archive \
             -project PokeJ.xcodeproj \
             -scheme PokeJ \
@@ -38,7 +39,18 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            DEVELOPMENT_TEAM=""
+            DEVELOPMENT_TEAM="" 2>&1 | tee "$RUNNER_TEMP/archive.log"
+
+      - name: Fehlerbericht in die Job-Zusammenfassung
+        if: failure()
+        run: |
+          [ -f "$RUNNER_TEMP/archive.log" ] || exit 0
+          {
+            echo "## Archive-Fehler"
+            echo '```'
+            grep -E "error:|fatal error:|\*\*\*" "$RUNNER_TEMP/archive.log" | head -60 || tail -60 "$RUNNER_TEMP/archive.log"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Package .ipa
         run: |
