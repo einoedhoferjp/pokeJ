@@ -377,7 +377,11 @@ struct AddEditCardView: View {
             .padding(.vertical, 16)
             .background(
                 RoundedRectangle(cornerRadius: AppTheme.controlRadius, style: .continuous)
-                    .fill(AnyShapeStyle(canSave ? AppTheme.brandGradient : Color.secondary.opacity(0.3)))
+                    .fill(
+                    canSave
+                        ? AnyShapeStyle(AppTheme.brandGradient)
+                        : AnyShapeStyle(Color.secondary.opacity(0.3))
+                )
                     .overlay(
                         LinearGradient(
                             colors: [Color.white.opacity(0.3), Color.clear],
